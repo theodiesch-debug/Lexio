@@ -5,8 +5,13 @@
  * Aufruf:
  *   node scripts/mails-setzen.mjs                 # dunkle Fassung setzen
  *   node scripts/mails-setzen.mjs --hell          # helle Fassung setzen
+ *   node scripts/mails-setzen.mjs --hell --nur-vorschau   # hell bauen, aber nicht setzen
  *   node scripts/mails-setzen.mjs --vorschau      # zusaetzlich HTML zur Ansicht ablegen
  *   node scripts/mails-setzen.mjs --test-mail du@example.com   # Testmail schicken
+ *
+ * --nur-vorschau ist der Schutz, bevor man wechselt: Damit laesst sich die
+ * andere Fassung ansehen und pruefen, ohne die live gehende Aenderung mit
+ * auszuloesen.
  *
  * Warum ein Skript und nicht das Dashboard
  * ----------------------------------------
@@ -28,7 +33,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { designs, vorlagen, BASIS_URL } from "./mails-vorlagen.mjs";
+import { designs, vorlagen } from "./mails-vorlagen.mjs";
 
 const WURZEL = path.resolve(import.meta.dirname, "..");
 
@@ -61,6 +66,7 @@ const fett = (t) => `\x1b[1m${t}\x1b[0m`;
 const args = process.argv.slice(2);
 const design = args.includes("--hell") ? "hell" : "dunkel";
 const vorschauGewuenscht = args.includes("--vorschau");
+const nurVorschau = args.includes("--nur-vorschau");
 const testIndex = args.indexOf("--test-mail");
 const testAdresse = testIndex >= 0 ? args[testIndex + 1] : null;
 
@@ -97,15 +103,21 @@ console.log(`${d.beschreibung}\n`);
 
 /* ----------------------------------------------------- 1. Vorschau ablegen */
 
-if (vorschauGewuenscht) {
+if (vorschauGewuenscht || nurVorschau) {
   const ziel = path.join(os.tmpdir(), "lexio-mails", design);
   fs.mkdirSync(ziel, { recursive: true });
   for (const [name, { inhalt }] of Object.entries(alle)) {
     fs.writeFileSync(path.join(ziel, `${name}.html`), inhalt);
   }
   console.log(`Vorschau abgelegt: ${gelb(ziel)}`);
-  console.log("  (im Browser oeffnen, um das Aussehen zu pruefen)\n");
+  console.log("  (im Browser oeffnen, um das Aussehen zu pruefen)");
 }
+
+if (nurVorschau) {
+  console.log(`\n${ok("Nur Vorschau geschrieben.")} Nichts geaendert.\n`);
+  process.exit(0);
+}
+console.log("");
 
 /* -------------------------------------------------- 2. In Supabase setzen */
 
@@ -170,4 +182,4 @@ if (testAdresse) {
   }
 }
 
-console.log(`\n${ok("Fertig.")} Bearbeiten im Dashboard: ${BASIS_URL.replace(/.*/, "Authentication → Emails → Templates")}\n`);
+console.log(`\n${ok("Fertig.")} Im Dashboard nachzulesen: Authentication → Emails → Templates\n`);
