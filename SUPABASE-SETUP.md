@@ -88,6 +88,29 @@ Weitere Umgebungen analog (`https://…`). Fehlt eine, lehnt Supabase den
 Aufruf mit „requested path is invalid" ab – der Grund ist dann nicht die
 Adresse, sondern diese Liste.
 
+### Mailvorlagen: Texte und Aussehen
+
+SMTP läuft bei diesem Projekt über **Brevo** (`smtp-relay.brevo.com`,
+Port 587), Absender `Lexio <theodiesch@gmail.com>`. Wichtig: diese Adresse
+muss in Brevo unter *Senders* bestätigt sein – sonst lehnt Brevo jede Mail
+ab und der Fehler steht nur in Brevos Protokollen, nicht in Supabase.
+
+Die Vorlagen selbst liegen **nicht** allein im Dashboard, sondern als
+Quellcode in `scripts/mails-vorlagen.mjs`: Design-Tokens aus
+`app/styles/global.css`, Tabellenlayout mit Inline-Styles, Wortmarke aus
+Caveat als Bild. Gesetzt werden sie mit einem Skript:
+
+```bash
+npm run mails:setzen                       # dunkle Fassung setzen (Standard)
+npm run mails:setzen -- --hell             # helle Fassung setzen
+npm run mails:setzen -- --hell --nur-vorschau   # nur ansehen, nichts ändern
+npm run mails:setzen -- --vorschau --test-mail du@example.com
+```
+
+Im Dashboard bleiben sie unter Authentication → Emails → Templates
+nachlesbar. Wer dort von Hand ändert, wird beim nächsten Lauf überschrieben –
+die Quelldatei gewinnt. Also immer hier pflegen.
+
 ---
 
 ## 3. Anmeldeanbieter (optional)
