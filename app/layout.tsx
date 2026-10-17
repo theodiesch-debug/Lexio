@@ -134,6 +134,14 @@ export const metadata: Metadata = {
     formatDetection: {
         telephone: false,
     },
+    /*
+     * Inhaberschaft fuer die Google Search Console. Ohne diesen Token kann
+     * Google die Seite nicht als eigene Eigenschaft bestaetigen – und ohne
+     * bestaetigte Eigenschaft nimmt Google weder Sitemap noch Indexierung an.
+     */
+    verification: {
+        google: "5krcwj35-5aLhyOahRa3b7I8x5mLOT6Dc1fDNVlI0H8",
+    },
     icons: {
         /*
          * Bewusst icon-192 und nicht logo.png: das Logo wiegt 1,9 MB, und
