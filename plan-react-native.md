@@ -20,6 +20,26 @@ pushen (explizite Pfade, nie `git add -A`).
 
 ---
 
+## Fortschritt
+
+Stand: Etappen 1–8 umgesetzt, Etappe 9 (Feinschliff/Abnahme) in Arbeit.
+
+| Etappe | Zustand | Commit |
+|---|---|---|
+| 1 – Fundament (Tokens, Theme, Schriften, Logo) | erledigt | `08b2571` |
+| 2 – Kernkomponenten | erledigt | `6d50ab5` |
+| 3 – Navigationsgerüst | erledigt | `728b200` |
+| 4 – Übersicht im Web-Stil | erledigt | `b92d551` |
+| 5 – Lernen im Web-Stil | erledigt | `0055fd1` |
+| 6 – Anmelden im Web-Stil | erledigt | `62c3f78` |
+| 7 – Wortschatz, Statistiken, Einstellungen, Profil | erledigt | `dda8fc4` |
+| 8 – Karteikarten, Hinzufügen, Quellen | erledigt | `f86b202` |
+| 9 – Feinschliff und Gesamtabnahme | in Arbeit | – |
+
+Gates nach Etappe 8: App `tsc` sauber, `expo lint` sauber, `npm test` 36/0.
+
+---
+
 ## Grundsatzentscheidungen
 
 1. **Eine Quelle für Farben und Maße.** Die Web-Werte aus `global.css` werden
@@ -214,3 +234,31 @@ Abweichungen ausdrücklich benannt.
   „prüfen" markiert.
 - **Plattformprüfung** braucht ein echtes Gerät (iOS/Android) — wie bei
   LEXIO-PLAN offen bis Hardware da ist.
+
+### Etappe 9 — Ergebnis und benannte Abweichungen
+
+Umgesetzt:
+- **Reduzierte Bewegung** wie im Web (`@media (prefers-reduced-motion)`):
+  `design/bewegung.ts` liest die Systemeinstellung und beobachtet sie; das
+  Skelett pulsiert dann nicht, der Kartenwechsel dreht nicht (Dauer 0), der
+  XP-Pop erscheint ohne Flug (Dauer 0).
+- **Kartenzeichen** erscheinen in der Lernansicht wie im Web. Das Web zeigt sie
+  sonst nur auf der Landing (keine App) und als Schalter in den Einstellungen.
+
+Bewusst abweichend (nicht erfunden, sondern benannt):
+- **Quellen**: Das Web verlinkt `/quellen` von der öffentlichen Landing, die
+  die App nicht hat. Die App bringt die Seite als `(app)/quellen.tsx` mit und
+  verlinkt sie aus „Einstellungen → Sonstiges"; dort ist sie hinter der
+  Anmeldung erreichbar.
+- **Kartenzeichen-Schalter** (an/aus, `lib/kartenzeichen-ein.ts`, localStorage):
+  in der App nicht vorhanden — die Kartenzeichen stehen fest an. `lib/
+  kartenzeichen-ein.ts` ist browser-only (localStorage) und müsste für die App
+  über AsyncStorage neu gebaut werden.
+- **Weitere Geräte-Einstellungen** des Web (Ton, Push, „angemeldet bleiben",
+  Sitzungsdauer) fehlen bewusst: sie brauchen Gerätemodule oder speichern
+  nichts. Siehe Kopfkommentar `einstellungen.tsx`.
+- **Kein OAuth** und kein „Passwort vergessen?" beim Anmelden (Etappe 6):
+  dieselbe Geräte-/Konfigurationsgrenze. „Passwort ändern" gibt es dagegen in
+  den Einstellungen über `supabase.auth.updateUser`.
+- **`ActivityIndicator`** im Anmelde-Knopf entspricht dem `fa-spinner fa-spin`
+  des Web — ein Knopf-Zustand, kein Lade-/Leer-/Fehlerzustand einer Liste.

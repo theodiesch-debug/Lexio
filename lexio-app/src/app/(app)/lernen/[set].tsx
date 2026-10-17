@@ -34,6 +34,7 @@ import { Kartenzeichen } from "../../../components/kartenzeichen";
 import { Knopf } from "../../../components/knopf";
 import { Skelett } from "../../../components/zustand";
 import { CAVEAT, MONO, SANS, SERIF } from "../../../design/schrift";
+import { useReduzierteBewegung } from "../../../design/bewegung";
 import { useDesign } from "../../../design/theme";
 import { ABSTAND, KARTEN_TINTE, RADIUS } from "../../../design/tokens";
 import { ApiFehler, holeJson, sendeJson } from "../../../lib/api";
@@ -494,15 +495,17 @@ function Lernkarte({
   onVorlesen: () => void;
 }) {
   const dreh = useMemo(() => new Animated.Value(0), []);
+  const reduziert = useReduzierteBewegung();
 
   useEffect(() => {
     Animated.timing(dreh, {
       toValue: aufgedeckt ? 1 : 0,
-      duration: 460,
+      // Bei reduzierter Bewegung wird ohne Drehung gewechselt.
+      duration: reduziert ? 0 : 460,
       easing: Easing.bezier(0.4, 0.14, 0.3, 1),
       useNativeDriver: true,
     }).start();
-  }, [aufgedeckt, dreh]);
+  }, [aufgedeckt, dreh, reduziert]);
 
   const vorneDreh = dreh.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "180deg"] });
   const hintenDreh = dreh.interpolate({ inputRange: [0, 1], outputRange: ["180deg", "360deg"] });
@@ -631,15 +634,17 @@ function SprachPille({ set }: { set: LernAntwort | null }) {
 function XpPop({ xp, onFertig }: { xp: number; onFertig: () => void }) {
   const wert = useMemo(() => new Animated.Value(0), []);
   const { farben } = useDesign();
+  const reduziert = useReduzierteBewegung();
 
   useEffect(() => {
     Animated.timing(wert, {
       toValue: 1,
-      duration: 900,
+      // Bei reduzierter Bewegung erscheint der Pop ohne Flug (Dauer 0).
+      duration: reduziert ? 0 : 900,
       easing: Easing.out(Easing.quad),
       useNativeDriver: true,
     }).start(() => onFertig());
-  }, [wert, onFertig]);
+  }, [wert, onFertig, reduziert]);
 
   const opacity = wert.interpolate({ inputRange: [0, 0.25, 0.7, 1], outputRange: [0, 1, 1, 0] });
   const scale = wert.interpolate({

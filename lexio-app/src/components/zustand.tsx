@@ -20,6 +20,7 @@ import {
 import { SANS } from "../design/schrift";
 import { useDesign } from "../design/theme";
 import { RADIUS } from "../design/tokens";
+import { useReduzierteBewegung } from "../design/bewegung";
 import { Knopf } from "./knopf";
 
 /** Ein pulsierender Platzhalter für eine Fläche, die noch lädt. */
@@ -31,9 +32,12 @@ export function Skelett({
     radius?: number;
 }) {
     const { farben } = useDesign();
+    const reduziert = useReduzierteBewegung();
     const puls = useMemo(() => new Animated.Value(1), []);
 
     useEffect(() => {
+        // Bei reduzierter Bewegung bleibt das Skelett ruhig stehen.
+        if (reduziert) return;
         const schleife = Animated.loop(
             Animated.sequence([
                 Animated.timing(puls, {
@@ -52,7 +56,7 @@ export function Skelett({
         );
         schleife.start();
         return () => schleife.stop();
-    }, [puls]);
+    }, [puls, reduziert]);
 
     return (
         <Animated.View
