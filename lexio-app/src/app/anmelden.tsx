@@ -41,7 +41,7 @@ import { useDesign } from "@/design/theme";
 import { ABSTAND, RADIUS } from "@/design/tokens";
 import { supabase } from "@/lib/supabase";
 
-const LOGO = require("../../../assets/images/lexio-logo.png");
+const LOGO = require("../../assets/images/lexio-logo.png");
 
 /** Der Web-Bruchpunkt fuer die zweispaltige Ansicht: `@media (max-width: 900px)`. */
 const BREIT_AB = 900;
