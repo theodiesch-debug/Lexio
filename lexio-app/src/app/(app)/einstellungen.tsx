@@ -16,13 +16,14 @@
 import { useState, type ReactNode } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
+import { FontAwesome6 } from "@expo/vector-icons";
 
 import { Knopf } from "@/components/knopf";
 import { Karte } from "@/components/karte";
 import { Feld } from "@/components/feld";
 import { SANS, SERIF } from "@/design/schrift";
 import { useDesign } from "@/design/theme";
-import { ABSTAND, RADIUS, type DesignName } from "@/design/tokens";
+import { ABSTAND, MASS, RADIUS, type DesignName } from "@/design/tokens";
 import { supabase } from "@/lib/supabase";
 import { MIN_PASSWORT, PASSWORT_FEHLER } from "@lexio/passwort";
 
@@ -210,6 +211,29 @@ export default function Einstellungen() {
                         Version 1.0.0
                     </Text>
                 </View>
+
+                <View style={[styles.trenner, { backgroundColor: farben.line }]} />
+
+                {/*
+                 * Die Quellenangabe der Wortlisten. Im Web steht sie auf der
+                 * oeffentlichen Landing; die App hat keine, also ist dies der
+                 * Ort, an dem sie erreichbar ist.
+                 */}
+                <Pressable
+                    onPress={() => router.push("/quellen")}
+                    accessibilityRole="link"
+                    accessibilityLabel="Quellen der Wortlisten"
+                    style={styles.zeile}
+                >
+                    <Text style={[styles.aboutTitel, { color: farben.textPrimary }]}>
+                        Quellen der Wortlisten
+                    </Text>
+                    <FontAwesome6
+                        name="chevron-right"
+                        size={14}
+                        color={farben.textMuted}
+                    />
+                </Pressable>
             </Abschnitt>
         </ScrollView>
     );
@@ -258,4 +282,11 @@ const styles = StyleSheet.create({
     trenner: { height: 1, marginVertical: ABSTAND.xs },
     about: { gap: 2 },
     aboutTitel: { fontFamily: SANS.semibold, fontSize: 16 },
+    zeile: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        minHeight: MASS.touch,
+        gap: ABSTAND.md,
+    },
 });
