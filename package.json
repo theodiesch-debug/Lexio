@@ -16,7 +16,8 @@
     "wortlisten:erzeugen": "node scripts/wortlisten-erzeugen.mjs",
     "toter-code": "node scripts/toten-code.mjs",
     "wortlisten:importieren": "node scripts/wortlisten-importieren.mjs",
-    "beispielsatz:korpus": "node scripts/beispielsatz-korpus.mjs"
+    "beispielsatz:korpus": "node scripts/beispielsatz-korpus.mjs",
+    "mails:setzen": "node scripts/mails-setzen.mjs"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.3.1",
