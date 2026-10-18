@@ -137,6 +137,34 @@ einsamer Einzelkarten wegen springen. Die Alternative „Mittelwert nur über
 gesehene Karten" hätte das Gehirn beschönigt, aber ein Set mit zwei alten Karten
 sofort nach oben gestuft.
 
+**Nachtrag 2026-10-18, vom Nutzer entschieden („komplett offline nutzbar"):**
+Die App soll **vollständig ohne Netz laufen** — Sets ansehen, Runden lernen,
+bewerten, Karten anlegen. Im Flugmodus, in der U-Bahn, im Ausland ohne Roaming.
+Was Netz braucht, ist die Synchronisation, nicht das Lernen.
+
+Das ist eine Entscheidung gegen die heutige Bauweise. Die App ist ein dünner
+Client: `/api/lernen` baut den Stapel aus der Datenbank, `/api/lernen/antwort`
+schreibt die neue Stufe. Ohne Netz gibt es beides nicht, und heute steht dann
+ein Fehlerbildschirm.
+
+- **Speicherung:** Karten und Lernstand (`stufe`, `faellig`, letzte Bewertung)
+  liegen auf dem Gerät (`expo-sqlite`), nicht nur im Arbeitsspeicher.
+- **Rundenaufbau:** clientseitig aus dem lokalen Bestand, nach denselben Regeln
+  wie `app/api/lernen/route.ts`. Die Kernlogik ist dafür schon fertig und
+  geteilt: `lib/lernlogik.ts` (`INTERVALLE`, `stufeNachAntwort`, `faelligAb`,
+  `xpFuerBewertung`) und `rundenrotation.ts` laufen in Web und App als dieselbe
+  reine Funktion.
+- **Schreibweg:** Antwort sofort lokal anwenden, in eine Warteschlange legen,
+  bei Netz über `/api/lernen/antwort` nachschieben. Der Nutzer lernt nie gegen
+  einen Fehler.
+- **Konfliktregel:** Fortschritt geht nur nach vorn — bei abweichenden Stufen
+  gewinnt die höhere.
+- **Besitzprüfung bleibt in der Datenbank (RLS):** die Queue schiebt über
+  dieselbe API nach wie jeder andere Schreibweg. Nichts wird direkt in die
+  Datenbank geschrieben, keine zweite Schreibquelle.
+
+Gemeint ist die App. Die Website bleibt an das Netz gebunden.
+
 ---
 
 ## Verifizierter Zustand (2026-09-27)
@@ -1791,6 +1819,29 @@ sie sonst als `div`) — Commit `a388f46`.
 
 Damit ist Phase 7 **software-seitig abgeschlossen**. Es bleiben nur die zwei
 oben genannten Hardware-Punkte.
+
+### Phase 7 — Stand 2026-10-18 — komplett offline
+
+Aus der Produktentscheidung vom selben Tag (siehe
+[Produktentscheidungen](#produktentscheidungen)). Der Stand 2026-10-11 bleibt
+gültig — Offline öffnet eine **neue Etappe**, weil die App ihre Daten jetzt
+nicht mehr nur holen darf, sondern besitzen muss.
+
+| # | Etappe | Abnahme |
+| --- | --- | --- |
+| 1 | **Lesecache:** Sets und Karten landen beim ersten Laden im lokalen Verzeichnis | Flugmodus an, App neu starten → Set-Inhalt sichtbar |
+| 2 | **Lernstand lokal:** `stufe` und `faellig` je Karte liegen auf dem Gerät, Rundenaufbau clientseitig über die geteilte `lernlogik` | Flugmodus → komplette Runde durchspielbar |
+| 3 | **Antwort-Queue:** Antwort sofort lokal, bei Netz über `/api/lernen/antwort` nachgeschoben | Runde ohne Netz, Netz wieder an → Stufen und XP im Web identisch |
+| 4 | **Hinzufügen offline:** neue Karten gehen in dieselbe Queue | Flugmodus Karte anlegen → später im Web sichtbar |
+
+Etappe 1 allein ist kein Ziel: ein Cache, der Karten zeigt, aber zum Lernen ins
+Leere läuft, verspricht mehr, als er hält. Die Etappen 1–4 gehören zusammen.
+
+**Abnahme:** Handy in den Flugmodus, App neu starten, ein Set bis zum Ende
+lernen, eine Karte anlegen, Netz wieder an. Im Web steht danach derselbe Stand —
+gleiche Stufen, gleiche XP, keine verlorene Karte, kein Fehlerbildschirm.
+
+**Reihenfolge gegenüber dem USP:** noch offen, steht beim Nutzer.
 
 ---
 
