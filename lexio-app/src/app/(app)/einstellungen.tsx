@@ -3,18 +3,25 @@
  *
  * Der Design-Schalter ist echt: er haengt am DesignAnbieter (design/theme.tsx)
  * und schreibt in den AsyncStorage, genau wie das `data-design`-Attribut im
- * Web. Die uebrigen Web-Regler fehlen hier bewusst: Push und „angemeldet
- * bleiben" brauchen Geraete-Module, die es in der App noch nicht gibt, und die
- * Sprache/Land-Attrappen speichern nichts. Ein Schalter, der nichts speichert,
- * ist schlimmer als keiner – er verspricht etwas und haelt es nicht.
+ * Web. Die Erinnerung ist es auch: eine echte lokale Benachrichtigung ueber
+ * expo-notifications, einmal taeglich auf diesem Geraet. Dass dieser Schalter
+ * erst jetzt existiert, haengt an genau dieser Tatsache – in Expo Go fehlen
+ * Teile der Darstellung, und vor der eigenstaendigen APK lief ohne Metro
+ * nichts, was haelt, was es verspricht.
  *
- * Es bleibt: Design, ein Hinweis zu den Toenen, Passwort aendern, Abmelden und
- * die Versionszeile. Der Konto-Bereich funktioniert ueber supabase.auth wie im
- * Web, ohne das alte Passwort: die Sitzung beweist schon, wer hier ist.
+ * Die uebrigen Web-Regler fehlen weiterhin bewusst: „angemeldet bleiben"
+ * haengt am Web-Push und die Sprache/Land-Paare speichern nichts. Ein
+ * Schalter, der nichts speichert, ist schlimmer als keiner – er verspricht
+ * etwas und haelt es nicht.
+ *
+ * Es bleibt: Design, Erinnerung, ein Hinweis zu den Toenen, Passwort
+ * aendern, Abmelden und die Versionszeile. Der Konto-Bereich funktioniert
+ * ueber supabase.auth wie im Web, ohne das alte Passwort: die Sitzung
+ * beweist schon, wer hier ist.
  */
 
-import { useState, type ReactNode } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState, type ReactNode } from "react";
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { FontAwesome6 } from "@expo/vector-icons";
 
@@ -24,6 +31,14 @@ import { Feld } from "@/components/feld";
 import { SANS, SERIF } from "@/design/schrift";
 import { useDesign } from "@/design/theme";
 import { ABSTAND, MASS, RADIUS, type DesignName } from "@/design/tokens";
+import {
+    ERINNERUNG_STANDARD,
+    erinnerungLesen,
+    erinnerungSpeichern,
+    erinnerungStellen,
+    testmeldung,
+    type Erinnerung,
+} from "@/lib/benachrichtigungen";
 import { supabase } from "@/lib/supabase";
 import { MIN_PASSWORT, PASSWORT_FEHLER } from "@lexio/passwort";
 
@@ -34,6 +49,23 @@ const DESIGN_OPTIONEN: { wert: DesignName; label: string }[] = [
     { wert: "dunkel", label: "Dunkel" },
 ];
 
+const AN_AUS: { wert: boolean; label: string }[] = [
+    { wert: true, label: "An" },
+    { wert: false, label: "Aus" },
+];
+
+/**
+ * Ganze Stunden statt eines Datums-Pickers: der bringt eine Native-Abhaengigkeit
+ * mit, und die Vorauswahl deckt ab, was in der Praxis gebraucht wird.
+ */
+const ZEIT_OPTIONEN: { stunde: number; label: string }[] = [
+    { stunde: 8, label: "08:00" },
+    { stunde: 12, label: "12:00" },
+    { stunde: 17, label: "17:00" },
+    { stunde: 19, label: "19:00" },
+    { stunde: 21, label: "21:00" },
+];
+
 export default function Einstellungen() {
     const { farben, design, setDesign } = useDesign();
 
@@ -42,6 +74,26 @@ export default function Einstellungen() {
     const [passwortLaeuft, setPasswortLaeuft] = useState(false);
     const [passwortMeldung, setPasswortMeldung] = useState<Meldung>(null);
     const [abmeldenLaeuft, setAbmeldenLaeuft] = useState(false);
+
+    const [erinnerung, setErinnerung] = useState<Erinnerung>(ERINNERUNG_STANDARD);
+    const [erinnerungLaeuft, setErinnerungLaeuft] = useState(false);
+    const [erinnerungMeldung, setErinnerungMeldung] = useState<Meldung>(null);
+
+    // Wie das Design steht die Erinnerung im AsyncStorage, nicht in React –
+    // sonst zeigen wir beim ersten Mal „Aus", obwohl Android noch meldet.
+    useEffect(() => {
+        let laeuft = true;
+        void erinnerungLesen().then((wert) => {
+            if (laeuft) setErinnerung(wert);
+        });
+        return () => {
+            laeuft = false;
+        };
+    }, []);
+
+    const zeitText = `${String(erinnerung.stunde).padStart(2, "0")}:${String(
+        erinnerung.minute,
+    ).padStart(2, "0")}`;
 
     async function passwortSpeichern() {
         if (passwortLaeuft) return;
@@ -83,6 +135,39 @@ export default function Einstellungen() {
         // Meldung wuerde nur stehen bleiben, bis der Screen ohnehin wechselt.
         await supabase.auth.signOut().catch(() => undefined);
         router.replace("/anmelden");
+    }
+
+    async function erinnerungAendern(neu: Erinnerung) {
+        if (erinnerungLaeuft) return;
+        setErinnerungLaeuft(true);
+        setErinnerungMeldung(null);
+        // Zuerst zeigen, dann speichern, dann planen: die Oberfläche bleibt
+        // bedienbar, auch wenn Android bei der Berechtigung nicht mitspielt.
+        setErinnerung(neu);
+        await erinnerungSpeichern(neu);
+        const ergebnis = await erinnerungStellen(neu);
+        if (ergebnis === "abgelehnt") {
+            setErinnerungMeldung({
+                art: "fehler",
+                text:
+                    "Benachrichtigungen sind gesperrt. Erlaube sie in den Geräteeinstellungen " +
+                    "und tippe danach noch einmal auf „An“.",
+            });
+        }
+        setErinnerungLaeuft(false);
+    }
+
+    async function testSchicken() {
+        if (erinnerungLaeuft) return;
+        setErinnerungLaeuft(true);
+        setErinnerungMeldung(null);
+        const ok = await testmeldung();
+        setErinnerungMeldung(
+            ok
+                ? { art: "ok", text: "Kommt in drei Sekunden – dann siehst du das Aussehen." }
+                : { art: "fehler", text: "Benachrichtigungen sind nicht erlaubt." },
+        );
+        setErinnerungLaeuft(false);
     }
 
     return (
@@ -137,6 +222,144 @@ export default function Einstellungen() {
                 <Text style={[styles.hinweis, { color: farben.textMuted }]}>
                     Gilt sofort und bleibt auch nach dem Neuladen erhalten.
                 </Text>
+            </Abschnitt>
+
+            <Abschnitt titel="Erinnerung">
+                <Text style={[styles.label, { color: farben.textSecondary }]}>
+                    Täglich erinnern
+                </Text>
+                <View
+                    style={[
+                        styles.segment,
+                        { backgroundColor: farben.bgElevated2, borderColor: farben.line },
+                    ]}
+                >
+                    {AN_AUS.map((option) => {
+                        const aktiv = erinnerung.aktiv === option.wert;
+                        return (
+                            <Pressable
+                                key={String(option.wert)}
+                                onPress={() =>
+                                    void erinnerungAendern({ ...erinnerung, aktiv: option.wert })
+                                }
+                                disabled={erinnerungLaeuft}
+                                accessibilityRole="button"
+                                accessibilityState={{
+                                    selected: aktiv,
+                                    disabled: erinnerungLaeuft,
+                                }}
+                                accessibilityLabel={`Erinnerung ${option.label}`}
+                                style={[
+                                    styles.segmentKnopf,
+                                    aktiv ? { backgroundColor: farben.gold } : null,
+                                ]}
+                            >
+                                <Text
+                                    style={[
+                                        styles.segmentText,
+                                        {
+                                            color: aktiv ? farben.ink : farben.textSecondary,
+                                            fontFamily: aktiv ? SANS.semibold : SANS.medium,
+                                        },
+                                    ]}
+                                >
+                                    {option.label}
+                                </Text>
+                            </Pressable>
+                        );
+                    })}
+                </View>
+
+                {erinnerung.aktiv ? (
+                    <>
+                        <Text style={[styles.label, { color: farben.textSecondary }]}>Uhrzeit</Text>
+                        <View
+                            style={[
+                                styles.zeitSegment,
+                                { backgroundColor: farben.bgElevated2, borderColor: farben.line },
+                            ]}
+                        >
+                            {ZEIT_OPTIONEN.map((option) => {
+                                const aktiv = erinnerung.stunde === option.stunde;
+                                return (
+                                    <Pressable
+                                        key={option.stunde}
+                                        onPress={() =>
+                                            void erinnerungAendern({
+                                                ...erinnerung,
+                                                stunde: option.stunde,
+                                                minute: 0,
+                                            })
+                                        }
+                                        disabled={erinnerungLaeuft}
+                                        accessibilityRole="button"
+                                        accessibilityState={{ selected: aktiv }}
+                                        accessibilityLabel={`Erinnerung um ${option.label} Uhr`}
+                                        style={[
+                                            styles.zeitKnopf,
+                                            aktiv ? { backgroundColor: farben.gold } : null,
+                                        ]}
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.segmentText,
+                                                {
+                                                    color: aktiv
+                                                        ? farben.ink
+                                                        : farben.textSecondary,
+                                                    fontFamily: aktiv
+                                                        ? SANS.semibold
+                                                        : SANS.medium,
+                                                },
+                                            ]}
+                                        >
+                                            {option.label}
+                                        </Text>
+                                    </Pressable>
+                                );
+                            })}
+                        </View>
+                    </>
+                ) : null}
+
+                {erinnerungMeldung ? (
+                    <Text
+                        style={[
+                            styles.meldung,
+                            {
+                                color:
+                                    erinnerungMeldung.art === "ok"
+                                        ? farben.sage
+                                        : farben.terracotta,
+                            },
+                        ]}
+                    >
+                        {erinnerungMeldung.text}
+                    </Text>
+                ) : null}
+
+                {erinnerungMeldung?.art === "fehler" ? (
+                    <Knopf
+                        titel="Einstellungen öffnen"
+                        variante="rand-terrakotta"
+                        hoehe={MASS.touch}
+                        onPress={() => void Linking.openSettings()}
+                    />
+                ) : null}
+
+                <Text style={[styles.hinweis, { color: farben.textMuted }]}>
+                    {erinnerung.aktiv
+                        ? `Täglich um ${zeitText} – bleibt auf diesem Gerät, kein Konto nötig.`
+                        : "Aus – du bekommst in dieser Zeit keine Meldung."}
+                </Text>
+
+                <Knopf
+                    titel="Test-Benachrichtigung"
+                    variante="rand"
+                    hoehe={MASS.touch}
+                    onPress={() => void testSchicken()}
+                    disabled={erinnerungLaeuft}
+                />
             </Abschnitt>
 
             <Abschnitt titel="Töne">
@@ -278,6 +501,22 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     segmentText: { fontSize: 15 },
+    zeitSegment: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        borderWidth: 1,
+        borderRadius: RADIUS.feld,
+        padding: 3,
+        gap: 3,
+    },
+    zeitKnopf: {
+        minHeight: 40,
+        minWidth: 76,
+        paddingHorizontal: 16,
+        borderRadius: RADIUS.klein,
+        alignItems: "center",
+        justifyContent: "center",
+    },
     meldung: { fontFamily: SANS.medium, fontSize: 14 },
     trenner: { height: 1, marginVertical: ABSTAND.xs },
     about: { gap: 2 },
