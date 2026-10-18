@@ -63,6 +63,14 @@ const SEITEN = [
   // Kinder. Beides ist ohne Messung nicht zu beurteilen – besonders die
   // Zeilenhöhe der Links und das Umbrechen der Plaketten bei 360 px.
   { pfad: "/quellen", name: "Quellen", ohneLogin: true },
+  // Die USP-Seite gehoert mit drin, weil sie das einzige Werkzeug der App
+  // ist, das ohne Anmeldung funktioniert: Einfuegen, lesen, Karten zaehlen.
+  // Genau das ist bei 360 px zu pruefen – und ob die Kartenliste ueber-
+  // haupt umbricht, wenn zwölf Karten drinstehen.
+  // Steht die Seite nur hinter dem Zugangsschalter, liefert der Lauf einen
+  // 404. Das ist kein Layoutbefund, sondern die Stufe `USP_ZUGANG`; gemessen
+  // wird mit `USP_ZUGANG=offen`.
+  { pfad: "/vokabeln-aus-text", name: "Vokabeln aus Text", ohneLogin: true },
   { pfad: "/uebersicht", name: "Übersicht" },
   { pfad: "/wortschatz", name: "Wortschatz" },
   { pfad: "/lernen/englisch-grundlagen", name: "Lernansicht" },
@@ -237,6 +245,30 @@ const MESSUNG = () => {
       if (!label) continue;
       const lr = label.getBoundingClientRect();
       if (lr.width >= 44 && lr.height >= 44) continue;
+    }
+
+    /*
+     * Verstecktes Eingabefeld: dieselbe Idee wie oben, anderer Fall.
+     *
+     * Ein `<input type="file">`, das mit 1x1px und `clip` im Nichts liegt
+     * (`.dateiVersteckt` in der USP-Seite, `.dateiFeld` im Wizard), ist
+     * kein Feld, das man treffen kann – angesprochen wird das sichtbare
+     * `<label>` drumherum, und das misst `var(--touch)`. Gemessen wurde
+     * bisher das Quadrat, nicht die Zielflaeche: 6 Befunde pro Lauf fuer
+     * ein Muster, das absichtlich so gebaut ist.
+     *
+     * Gilt nur fuer Felder, die wirklich unsichtbar sind (beide Seiten
+     * <= 4px). Ein sichtbares Eingabefeld in einem Label wird weiterhin
+     * selbst gemessen, weil dort das Feld und nicht das Label getroffen
+     * wird. Ohne grosses Label gibt es auch hier nichts zu erlassen.
+     */
+    if (el.matches("input") && r.width <= 4 && r.height <= 4) {
+      const label = el.closest("label")
+        ?? (el.id ? document.querySelector(`label[for="${el.id}"]`) : null);
+      if (label) {
+        const lr = label.getBoundingClientRect();
+        if (lr.width >= 44 && lr.height >= 44) continue;
+      }
     }
 
     if (!istTextlink && (r.width < 44 || r.height < 44)) {

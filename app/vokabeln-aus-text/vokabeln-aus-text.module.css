@@ -1,0 +1,450 @@
+/*
+ * Styles der USP-Seite `/vokabeln-aus-text`.
+ *
+ * Dieselbe Regel wie auf der Quellenseite: nur Variablen aus global.css,
+ * keine eigene Farbe. Die Seite muss in hell und dunkel stehen, ohne dass
+ * hier eine Farbe nachgepflegt werden muss, die an zwei Stellen
+ * auseinanderlaeuft.
+ *
+ * Aufbau: EINE Spalte. Der Werkzeugkasten und der Text darunter teilen
+ * dieselbe Breite, damit der Sprung vom Textfeld zum Erklaertext kein
+ * Seitenwechsel ist. Die Karten darunter brechen auf, sobald Platz ist –
+ * `auto-fill` mit `min(...)` nimmt dem Telefon die Zeile, die es nicht
+ * hat, und gibt dem Desktop die zwei Spalten, die er vertraegt.
+ *
+ * Responsiv von Anfang an (Arbeitsregel 2), nicht nachgezogen: die Breiten
+ * laufen ueber `min()` und `clamp()`, es gibt genau einen Breakpoint unten,
+ * und kein Element bekommt eine feste Pixelbreite, die auf 360 px passt,
+ * auf 1440 px aber nicht.
+ */
+
+.seite {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--hero-grund, var(--background));
+  color: var(--text-primary);
+  font-family: var(--sans);
+}
+
+.kopf {
+  width: min(100% - 2rem, 46rem);
+  margin-inline: auto;
+  padding-block: 1.25rem;
+}
+
+.zurueck {
+  display: inline-flex;
+  align-items: center;
+  /* 44 px wie ueberall: die Zeile darf auf dem Telefon nicht unter die
+     Fingergrenze liegen. */
+  min-height: var(--touch, 44px);
+  padding: 0.5rem 0.9rem;
+  margin-left: -0.9rem;
+  border-radius: 999px;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.zurueck:hover {
+  color: var(--text-primary);
+}
+
+.text {
+  width: min(100% - 2rem, 46rem);
+  margin-inline: auto;
+  padding-block: 0.5rem 4rem;
+}
+
+.text h1 {
+  font-family: var(--serif);
+  font-size: clamp(1.75rem, 6vw, 2.5rem);
+  line-height: 1.15;
+  margin: 0 0 1.25rem;
+}
+
+.text h2 {
+  font-family: var(--serif);
+  font-size: clamp(1.25rem, 4vw, 1.375rem);
+  line-height: 1.25;
+  margin: 2.75rem 0 0.75rem;
+}
+
+.einleitung {
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  max-width: 68ch;
+  margin: 0 0 1.75rem;
+}
+
+.text p,
+.text li {
+  line-height: 1.65;
+  max-width: 68ch;
+  margin: 0 0 1rem;
+}
+
+.text ol,
+.text ul {
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.text li::marker {
+  color: var(--text-muted, var(--text-secondary));
+}
+
+.text li strong {
+  color: var(--text-primary);
+}
+
+/*
+ * Trennlinie vor den Abschnitten unterhalb des Werkzeugs. Ohne sie steht
+ * der Werkzeugkasten mit dem ersten `h2` in einer Linie, und man liest
+ * die Erklaerung als Teil der Oberflaeche.
+ */
+.abschnitt {
+  border-top: 1px solid var(--line);
+  padding-top: 0.5rem;
+}
+
+/* Formatbeispiele. `overflow-wrap` steht hier, weil ein Beispiel wie
+   „der Bahnhof | station | We arrive at the station. | Wir kommen am
+   Bahnhof an.“ ohne Umbruchrecht die Spalte verlaesst – auf dem Telefon
+   waere das der waagerechte Bildlauf, den der Responsive-Audit als Befund
+   meldet. */
+.text code {
+  font-family: var(--mono);
+  font-size: 0.9375rem;
+  background: var(--input-bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.1em 0.4em;
+  overflow-wrap: anywhere;
+}
+
+/* Die Fragen und Antworten stehen in einer `dl`, nicht in `p`/`li` – die
+   Liste oben deckt diese drei Elemente deshalb nicht ab. */
+.text dl {
+  margin: 0;
+}
+
+.text dt {
+  font-weight: 600;
+  line-height: 1.45;
+  margin-top: 1.5rem;
+}
+
+.text dd {
+  margin: 0.4rem 0 0;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  max-width: 68ch;
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------------ Werkzeug -- */
+
+.werkzeug {
+  border: 1px solid var(--line);
+  background: var(--card-bg);
+  border-radius: var(--radius, 16px);
+  padding: 1rem;
+  box-shadow: var(--shadow-soft);
+  margin-bottom: 0.5rem;
+}
+
+.feldBeschriftung {
+  display: block;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.eingabe {
+  display: block;
+  /*
+   * `border-box` ist hier nicht Kosmetik. Der Satz `width: 100%` plus
+   * `padding` plus `border` ergibt ohne `box-sizing: border-box` eine
+   * Zeile, die 30 px breiter ist als ihr Platz – auf 360 px Viewport
+   * lief das 1 px ueber den Rand hinaus (Befund „Bildlauf waagerecht"
+   * im Responsive-Audit). Das Repo setzt kein globales border-box, das
+   * steht bewusst pro Element, wo eine Breite gesetzt wird.
+   */
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 9.5rem;
+  padding: 0.75rem 0.875rem;
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background: var(--input-bg);
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius, 16px) - 6px);
+  resize: vertical;
+}
+
+.eingabe::placeholder {
+  color: var(--placeholder-color, var(--text-muted));
+}
+
+.eingabe:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+  border-color: var(--gold);
+}
+
+.leiste {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.knopf {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: var(--touch, 44px);
+  padding: 0.6rem 1.1rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: var(--gold);
+  color: var(--ink, #0e0c09);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  /* Auch auf <Link>: ohne das steht der Knopf unterstrichen. */
+  text-decoration: none;
+}
+
+.knopf:hover {
+  background: var(--gold-dark, var(--gold));
+}
+
+.knopfLeise {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: var(--touch, 44px);
+  padding: 0.6rem 1.1rem;
+  border-radius: 999px;
+  /* Bewusst geschrieben statt `composes: knopf` – das Modul benutzt sonst
+     nirgends composes, und zwei Quellen fuer dieselben Maße sind mehr
+     Wert als die sechs Zeilen, die sie sparen. */
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--text-primary);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  /* Auch auf <Link>: ohne das steht der Knopf unterstrichen. */
+  text-decoration: none;
+}
+
+.knopfLeise:hover {
+  background: var(--bg-elevated);
+  border-color: var(--text-muted);
+}
+
+.knopfLeise:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.knopf:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.dateiBeschriftung {
+  /* Der echte Input liegt im Speicher (`.dateiVersteckt`), das sichtbare
+     Stueck ist ein Label. Deshalb `cursor: pointer` und dieselben
+     Mindestmaße wie ein Knopf – ein unsichtbarer Input waere auf dem
+     Telefon unansprechbar. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: var(--touch, 44px);
+  padding: 0.6rem 1.1rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  /* Auch auf <Link>: ohne das steht der Knopf unterstrichen. */
+  text-decoration: none;
+}
+
+.dateiBeschriftung:hover {
+  background: var(--bg-elevated);
+  border-color: var(--text-muted);
+}
+
+.dateiBeschriftung:focus-within {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/*
+ * Das echte <input type="file"> liegt mit 1x1px und `clip` im Nichts.
+ * Dieselbe Technik wie `.dateiFeld` in `karteikarten-hinzufuegen/
+ * vokabeln-hinzufuegen` – absichtlich identisch, damit das
+ * Responsive-Audit beide Stellen gleich behandelt und nicht eine Seite
+ * einen Befund bekommt, den die andere nicht hat.
+ *
+ * `clip` statt `display: none`: nur so bleibt das Feld im Tab-Fokus und
+ * im Screenreader-Baum. Ein `opacity: 0` (die vorherige Fassung hier)
+ * nimmt es aus dem Fokus und laesst es im Messraster stehen.
+ */
+.dateiVersteckt {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.meldung {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin-top: 0.75rem;
+}
+
+.meldungFehler {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--terracotta);
+  margin-top: 0.75rem;
+}
+
+.meldungLeer {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+  margin-top: 0.75rem;
+}
+
+/* -------------------------------------------------------------- Karten -- */
+
+.karten {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: grid;
+  /*
+   * `min(100%, 16rem)`: ohne den inneren `min()` rechnet Grid eine
+   * Mindestspaltenbreite aus, die kleiner als der Platz in der Spalte ist,
+   * und der Inhalt laeuft waagerecht ueber (Befund „Bildlauf waagerecht"
+   * im Responsive-Audit). So kann die Spalte nie breiter werden als das,
+   * was da ist.
+   */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+  gap: 0.75rem;
+}
+
+.karte {
+  border: 1px solid var(--line);
+  background: var(--input-bg);
+  border-radius: calc(var(--radius, 16px) - 6px);
+  padding: 0.875rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  /*
+   * Lange Wörter dürfen umbrechen, aber nicht umbrechen, WOHIN sie wollen:
+   * "Donaudampfschifffahrtsgesellschaftskapitaen" in einer 16rem-Spalte
+   * ist der klassische Weg zu einem horizontalen Scrollbalken.
+   */
+  overflow-wrap: anywhere;
+}
+
+.karteFrage {
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.karteAntwort {
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.karteBeispiel {
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.karteLuecke {
+  font-size: 0.875rem;
+  color: var(--terracotta);
+}
+
+.karteNummer {
+  font-family: var(--mono);
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.klein {
+  font-size: 0.875rem;
+  color: var(--text-muted, var(--text-secondary));
+  padding-top: 1.5rem;
+  margin-top: 2.5rem;
+  border-top: 1px solid var(--line);
+}
+
+/* ----------------------------------------------------------- Abschluss -- */
+
+.abschluss {
+  border: 1px solid var(--line);
+  background: var(--bg-elevated);
+  border-radius: var(--radius, 16px);
+  padding: 1.25rem;
+  margin-top: 2.75rem;
+}
+
+.abschluss p {
+  margin-top: 0;
+}
+
+.abschlussAktion {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* ---------------------------------------------------------- Breakpoint -- */
+
+@media (max-width: 560px) {
+  .werkzeug {
+    /* Auf dem Telefon liegt die Karte nah am Bildschirmrand; 0.75rem
+       statt 1rem haelt den Inhalt optisch in der Spalte des Textes. */
+    padding: 0.75rem;
+    border-radius: var(--radius, 16px);
+  }
+
+  .eingabe {
+    min-height: 8rem;
+  }
+
+  .leiste .knopf,
+  .leiste .dateiBeschriftung {
+    flex: 1 1 auto;
+  }
+}
