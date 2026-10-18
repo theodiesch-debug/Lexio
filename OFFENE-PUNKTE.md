@@ -18,6 +18,11 @@ WICHTIG   3   alle drei behoben
 KLEIN     8   alle 8 behoben (4, 5, 6, 7, 8, 9, 10, 11)
 ```
 
+Der Stand oben gilt weiterhin. **Neu offen (2026-10-18):** ein Text unter
+14 px auf `/anmelden` (`.trennerText`, 0.78rem = 12,48 px), gefunden beim
+Responsive-Audit, als die neue USP-Seite in die Prüfliste kam — kein
+Blocker, eine Zeile CSS. Steht im „Nachtrag 2026-10-18" weiter unten.
+
 Dazu gekommen: eine **neue Profilseite** `/profil`. Die Profilkarte in der
 Seitenleiste war bis dahin reiner Text — Name, Level und XP konnten
 angesehen, aber nicht angeklickt werden, und auf dem Telefon war die Karte
@@ -789,6 +794,29 @@ Schutz für beide Kachelregeln (Name maximal zwei Zeilen, Deckung mindestens
 14 px) liegt jetzt `tests/css-kachel.test.ts` im Standard-Testlauf —
 `overflow: hidden` absorbiert solche Fehler still, deshalb war der Audit die
 einzige Stelle, die ihn überhaupt anzeigte.
+
+## Nachtrag 2026-10-18 — der Audit fand wieder eine Zeile unter 14 px, diesmal auf /anmelden
+
+Ausgelöst durch die neue USP-Seite `/vokabeln-aus-text`, die in die
+`SEITEN`-Liste von `scripts/responsive-audit.mjs` kam: 78 Läufe über 6
+Größen (360/414/768 px, hoch und quer). Die neue Seite selbst ist ohne
+Befund, die vier unten beschriebenen stammen von `/anmelden`.
+
+**`.trennerText` in `app/anmelden/anmelden.module.css` steht auf
+`0.78rem` = 12,48 px.** Das ist der Trenner „oder mit E-Mail" zwischen den
+Anmeldeknöpfen und dem E-Mail-Formular — dieselbe Abnahmeklausel wie am
+2026-10-07, nur an einer anderen Stelle. Der Befund kam bei 360 und 414 px
+in Hoch- und Querformat, also vier von sechs Größen.
+
+Bei 768 px verschwand er zwischen zwei Läufen: der erste meldete ihn, der
+zweite nicht. Das deutet auf den Ladezustand der Webschrift hin, nicht auf
+die Regel — eine Messung, die einmal kippt, ist eine Messung mit
+Zustandsabhängigkeit, und deshalb steht hier der zweite Lauf.
+
+**Nicht behoben.** Die Anmeldeseite war nicht Teil der USP-Etappe, und der
+Fix dürfte dieselbe Zeile sein wie damals (`0.875rem`). Er steht hier, damit
+er nicht untergeht: der Audit meldet ihn bei jedem Lauf neu, und dieser
+Nachtrag ist die zweite Aufforderung.
 
 ## Geprüft und in Ordnung
 

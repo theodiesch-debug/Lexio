@@ -165,6 +165,14 @@ ein Fehlerbildschirm.
 
 Gemeint ist die App. Die Website bleibt an das Netz gebunden.
 
+**Nachtrag 2026-10-18, vom Nutzer entschieden („erst testen, dann öffnen"):**
+Das USP **„Jeder Text wird dein Vokabelkurs" bekommt zuerst einen Zugangs-
+schalter** und nicht sofort die volle Öffentlichkeit. Die Seite existiert und
+ist benutzbar, ob sie für alle sichtbar ist, entscheidet `USP_ZUGANG`
+(`aus` / `vorschau` / `offen`). Erst nach der Prüfung kommt `offen` in die
+Projektumgebung von Vercel. Bei der Umsetzung gelten SEO und Responsive
+ausdrücklich als sorgfältig zu prüfende Teile, nicht als Anhang.
+
 ---
 
 ## Verifizierter Zustand (2026-09-27)
@@ -2369,6 +2377,9 @@ totem Code — geprüft, nicht behauptet.
 
 Offen sind aus `LEXIO-PLAN.md` nur noch die extern blockierten Punkte:
 SMTP/OAuth-Zugangsdaten und der Deployment-Wert von `NEXT_PUBLIC_SITE_URL`.
+Dazu, seit 2026-10-18, der Freigabeschalter `USP_ZUGANG`: erst wenn er auf
+`offen` steht, darf die Startseite auf die USP-Seite verlinken (Nachtrag
+unten, „Was noch offen ist").
 Phase 7 (React Native) ist nicht blockiert, aber nachrangig; ihr Abnahmeteil
 über die Wortlisten-Benennung ist inzwischen erledigt.
 
@@ -2437,3 +2448,91 @@ Löschen von Produktionsdaten auffordert, ist schlimmer als keine.
 > Merkmalsliste, die man nicht verifiziert, ist nur eine andere Behauptung —
 > dieselbe Sorte Fehler wie die zwei veralteten Fundstellen in
 > `OFFENE-PUNKTE.md`.
+
+---
+
+## Nachtrag vom 2026-10-18 — USP: „Jeder Text wird dein Vokabelkurs"
+
+Der Satz war bisher nur die Idee, auf der die Seite gründet. Jetzt gibt es
+ihn als Seite: `/vokabeln-aus-text`.
+
+### Was sie tut
+
+Text hinein oder eine Datei (`.txt`, `.csv`, `.tsv`, höchstens 500 kB), und
+die Wortliste entsteht beim Tippen. Gelesen wird **im Browser** über die
+geteilte Parserlogik (`textblockEinlesen`, `dateiEinlesen`) — kein
+API-Aufruf, keine Datei verlässt den Rechner. Jede erkannte Zeile wird zur
+Karte, jede nicht erkannte wird benannt statt still verschwiegen: zu viele
+Wörter, zu viele Spalten, eine fehlende Übersetzung.
+
+Die Seite **speichert nichts und braucht keine Anmeldung**. Sie zeigt, was
+versprochen wird; das Ablegen als Set ist der Knopf nach `/anmelden`.
+
+### Freigabe über `USP_ZUGANG`
+
+| Wert | Seite | Robots | Sitemap |
+| --- | --- | --- | --- |
+| `aus` (auch leer, auch unbekannter Wert) | 404 | — | nicht enthalten |
+| `vorschau` | nur mit `?vorschau=<USP_VORSCHAU_TOKEN>` | `noindex` | nicht enthalten |
+| `offen` | 200 | `index` | enthalten |
+
+Versagt wird zugunsten des Schlosses: ohne Wert ist `aus`, ein Wert außerhalb
+der drei erlaubten ist `aus`, ein Schlüssel unter acht Zeichen öffnet nichts,
+ein unbekannter Wert in `USP_ZUGANG` ist `aus`. Verglichen wird mit SHA-256
+und `timingSafeEqual`, beide Seiten werden getrimmt.
+
+Die beiden Werte stehen **nicht im Repository**: `.env.example` fällt unter
+die `.env*`-Regel in `.gitignore`, die Datei ist lokal. Sie gehören in die
+Projektumgebung von Vercel, lokal in `.env`. Damit die Seite überhaupt
+erreichbar ist, muss `USP_ZUGANG` also auf `offen` stehen, bevor jemand die
+Adresse testet.
+
+`/sitemap.xml` zieht dieselbe Regel und läuft **pro Anfrage** (`force-dynamic`).
+Grund: die Seite ist dynamisch, die Sitemap sonst beim Build eingefroren —
+ein Schalterwechsel hätte dann eine Sitemap geliefert, die noch die alte
+Ausgabe zeigt, mit einer Adresse darin, die mit 404 antwortet.
+
+### Geprüft, nicht geschätzt
+
+- Drei Stufen am laufenden Server: ohne Wert 404 und ohne Schemaeintrag;
+  `vorschau` mit richtigem Schlüssel 200 plus `noindex`, mit falschem 404;
+  `offen` 200 plus `index, follow` und Schemaeintrag.
+- Playwright: „Beispiel einfügen" ergibt 7 Karten, eigener Text 2, ein
+  Fließtext 0 Karten mit ehrlicher Meldung („1 Zeile übersprungen"), null
+  Konsolenfehler — auch wegen der CSP, die JSON-LD-Skripte tragen den
+  Nonce aus `proxy.ts`.
+- Responsive-Audit (`scripts/responsive-audit.mjs`): 78 Läufe über 6
+  Größen, die Seite **ohne Befund**. Die Karte: waagerechter Bildlauf 0 px
+  auf allen Breiten, kleinster Text 14 px.
+
+Zwei Befunde unterwegs behoben, beide echt: `width: 100%` an der Eingabe
+ohne `box-sizing: border-box` (das Repo setzt kein globales, sondern bewusst
+pro Element) lief auf 360 px genau 1 px über den Rand — die Kartei-Datei-
+Eingabe außerdem mit `opacity: 0` gebaut statt mit dem im Repo
+dokumentierten `clip`-Muster.
+
+Das Audit selbst hat eine Lücke bekommen: die Bedienelement-Regel maß ein
+verstecktes Feld (1×1 px) und meldete es, obwohl die Zielfläche das
+umschliessende `<label>` ist. Genau diese Logik hatte die Checkbox schon,
+jetzt für jedes unsichtbare Eingabefeld mit großem Label. Ohne die Regel
+standen sechs Befunde pro Lauf für ein Muster, das absichtlich so gebaut
+ist — und ein Messbefund, der immer dasselbe sagt, wird ignoriert.
+
+Die Seite steht in der `SEITEN`-Liste des Audits. Gemessen wird mit
+`USP_ZUGANG=offen`; auf `aus` liefert der Lauf 404, das ist dann die Stufe
+und kein Layoutbefund.
+
+### Gates
+
+Build, Lint (0 Fehler, die 9 Warnungen liegen in `legacy/script/`),
+240 Tests, toter Code. Committet als `f5c2c53`, gepusht auf `lexio-neu`.
+
+### Was noch offen ist
+
+- Der Link von der Startseite auf `/vokabeln-aus-text` kommt erst mit
+  `USP_ZUGANG=offen` — bis dahin ist die Seite nur über die direkte
+  Adresse erreichbar.
+- Die Reihenfolge gegenüber Phase 7 (Offline) steht beim Nutzer.
+- Vier vorbestehende Befunde des Audits: `/anmelden` zeigt „oder mit
+  E-Mail" mit 12,48 px unter 414 px Breite. Aufgenommen in
+  `OFFENE-PUNKTE.md`, nicht Teil dieser Etappe.
