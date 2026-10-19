@@ -177,6 +177,124 @@
     box-shadow: none;
 }
 
+/* --------------------------------------------------------- Hinweis-Banner */
+
+/*
+ * Zwei Einstiege, die vorher nirgends zu finden waren: der Quael-Modus und
+ * der Wortschatz-Test. Beide stehen bewusst sichtbar auf der Uebersicht
+ * statt in einem Menue – der Nutzer suchte sie und fand sie nicht.
+ *
+ * Gleiche Bauform fuer beide (Symbol, Text, Aktion); nur die Akzentfarbe
+ * unterscheidet sie: Terrakotta fuer den Quael-Modus (dieselbe Farbe wie
+ * dessen Marke auf der Lernseite), Salbei fuer den Test.
+ */
+.banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.9rem 1.25rem;
+    padding: clamp(1.05rem, 2.6vw, 1.6rem);
+    background: var(--card-bg);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: var(--shadow-soft);
+}
+
+.bannerSymbol {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    font-size: 1.2rem;
+    background: rgba(101, 168, 141, 0.16);
+    color: var(--sage);
+}
+
+.bannerSymbol svg {
+    width: 1.4rem;
+    height: 1.4rem;
+}
+
+.bannerQuael .bannerSymbol {
+    background: rgba(184, 66, 84, 0.18);
+    color: var(--terracotta);
+}
+
+.bannerText {
+    flex: 1 1 240px;
+    min-width: 0;
+}
+
+.bannerTitel {
+    font-family: var(--serif);
+    font-size: clamp(1.15rem, 2.6vw, 1.4rem);
+    font-weight: 700;
+    line-height: 1.15;
+    color: var(--text-primary);
+}
+
+.bannerText2 {
+    margin-top: 0.2rem;
+    font-size: clamp(0.9rem, 1.5vw, 1rem);
+    line-height: 1.45;
+    color: var(--text-secondary);
+    max-width: 54ch;
+}
+
+.bannerAktion {
+    flex: 0 0 auto;
+}
+
+.bannerKnopf {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 46px;
+    padding: 0.72rem 1.35rem;
+    border: none;
+    border-radius: 999px;
+    background: var(--sage);
+    color: #0c1611;
+    font-family: inherit;
+    font-size: 0.98rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
+}
+
+.bannerKnopf:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.06);
+    box-shadow: 0 10px 22px rgba(101, 168, 141, 0.32);
+}
+
+.bannerKnopf:active {
+    transform: scale(0.98);
+}
+
+.bannerQuael .bannerKnopf {
+    background: var(--terracotta);
+    color: #fff;
+}
+
+.bannerQuael .bannerKnopf:hover {
+    box-shadow: 0 10px 22px rgba(184, 66, 84, 0.34);
+}
+
+@media (max-width: 620px) {
+    .bannerAktion {
+        width: 100%;
+    }
+    .bannerKnopf {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
 /* ------------------------------------------------------------ Sprachraster */
 
 .abschnitt {

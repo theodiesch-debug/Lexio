@@ -384,6 +384,10 @@
  * Hauptweg – sonst sieht man zwei Hauptknöpfe und wählt per Zufall.
  */
 .knopfLeise {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
     min-height: 46px;
     padding: 0.7rem 1.4rem;
     border: 1px solid var(--line);
@@ -401,6 +405,30 @@
 .knopfLeise:hover {
     background: var(--bg-elevated-2);
     color: var(--text-primary);
+}
+
+/*
+ * Steht an der Stelle des Quael-Knopfes, solange es keine Quael-Woerter
+ * gibt. Keine Schaltflaeche, die ins Leere fuehrt, sondern eine Zeile, die
+ * sagt, wie Quael-Woerter entstehen. `flex-basis: 100%` schiebt sie unter
+ * "Set lernen", statt sie daneben zu quetschen.
+ */
+.quaelHinweis {
+    flex: 1 1 100%;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+.quaelHinweis svg {
+    flex: 0 0 auto;
+    width: 1.05rem;
+    height: 1.05rem;
+    color: var(--terracotta);
 }
 
 /*

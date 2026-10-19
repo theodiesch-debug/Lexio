@@ -102,6 +102,36 @@ export async function GET() {
   }
 
   /*
+   * Quael-Woerter je Set.
+   *
+   * `fehler` steht seit 016 in karten_fortschritt. Die Set-Uebersicht braucht
+   * die Summe, damit die Uebersicht und die Kacheln den Einstieg in den
+   * Quael-Modus zeigen koennen, ohne dass man erst die einzelnen Setseiten
+   * aufmachen muss. Eine eigene Abfrage statt einer Aenderung der View: die
+   * View umzubauen hiesse Migration, und die Ansicht ist bereits an mehreren
+   * Stellen im Einsatz.
+   *
+   * Faellt die Abfrage aus (fehlende Spalte, Rechte), bleibt die Zaehlung
+   * leer – dann gibt es keine Quael-Woerter und die Oberflaeche zeigt den
+   * Einstieg nicht. Ein kaputter Zusatz darf die Uebersicht nicht kippen.
+   */
+  type QuaelZeile = {
+    fehler: number;
+    karten: { karteikarten_sets: { slug: string } | null } | null;
+  };
+  const quaelProSet = new Map<string, number>();
+  const { data: quaelDaten } = await supabase
+    .from("karten_fortschritt")
+    .select("fehler, karten!inner(karteikarten_sets!inner(slug))")
+    .eq("user_id", user.id)
+    .gte("fehler", 1);
+  for (const zeile of (quaelDaten ?? []) as unknown as QuaelZeile[]) {
+    const slug = zeile.karten?.karteikarten_sets?.slug;
+    if (!slug) continue;
+    quaelProSet.set(slug, (quaelProSet.get(slug) ?? 0) + 1);
+  }
+
+  /*
    * supabase-js leitet den Zeilentyp aus der Select-Zeichenkette ab. Die View
    * steht nicht im generierten Typ, also kommt ein Platzhalter zurueck, und
    * ein direkter Cast darauf ist nicht erlaubt (TS2352). Deshalb zuerst ueber
@@ -136,6 +166,8 @@ export async function GET() {
     // null, wenn das Set noch nie gelernt wurde. Die Wortschatz-Tabelle
     // zeigt dafuer "–" statt eines erfundenen Datums.
     zuletztGelernt: row.zuletzt_gelernt ?? null,
+    // 0, wenn keine Karte dieses Sets mindestens einen Fehler hat.
+    quaelAnzahl: quaelProSet.get(row.slug) ?? 0,
   }));
 
   return NextResponse.json(sets, { headers: { "Cache-Control": "no-store" } });

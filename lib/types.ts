@@ -37,6 +37,13 @@ export type SetUebersicht = {
   eigenesSet: boolean;
   eigen: boolean;
   zuletztGelernt: string | null;
+  /**
+   * Anzahl Karten dieses Sets mit mindestens einem Fehler (fehler >= 1) –
+   * die Groesse, aus der der Quael-Modus seinen Stapel zieht. Optional, weil
+   * sie nur die Set-Uebersicht mitliefert; fehlt sie, gibt es keine
+   * Quael-Woerter und die Oberflaeche zeigt den Einstieg nicht.
+   */
+  quaelAnzahl?: number;
 };
 /**
  * Eine Karte, so wie GET /api/lernen sie ausliefert. Geteilt mit der App

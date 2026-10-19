@@ -6,7 +6,7 @@ import { farbeVonSprache, nameVonSprache, type SpracheInfo } from "@/lib/sprache
 import { holeJson, ApiFehler } from "@/lib/api-client";
 import { xpFormatieren } from "@/lib/profil";
 import type { ProfilDaten } from "@/components/navbar/profil-karte";
-import { IconLoeschen } from "@/components/icone";
+import { IconFlamme, IconLoeschen } from "@/components/icone";
 import styles from "./uebersicht.module.css";
 
 type SetZeile = {
@@ -33,6 +33,8 @@ type SetZeile = {
   eigenesSet?: boolean;
   /** true, wenn das Set dieser Person gehoert. Aus 003. */
   eigen?: boolean;
+  /** Karten dieses Sets mit mindestens einem Fehler (fehler >= 1). */
+  quaelAnzahl?: number;
 };
 
 type Meldung = { text: string; fehler: boolean } | null;
@@ -179,6 +181,13 @@ export default function Uebersicht() {
       ? `Du bist auf dem neuesten Stand. ${naechstes.kartenGelernt} von ${naechstes.kartenGesamt} Karten gelernt.`
       : "Lege dein erstes Set an und lerne sofort los.";
 
+  // Der Quael-Einstieg erscheint nur, wenn es ueberhaupt Quael-Woerter gibt.
+  // Fuehren soll das Set mit den meisten: dort gibt es am meisten zu holen.
+  const quaelGesamt = sets.reduce((sum, s) => sum + (s.quaelAnzahl ?? 0), 0);
+  const quaelSet = [...sets]
+    .filter((s) => (s.quaelAnzahl ?? 0) > 0)
+    .sort((a, b) => (b.quaelAnzahl ?? 0) - (a.quaelAnzahl ?? 0))[0];
+
   return (
     <div className={styles.seite}>
       <header className={styles.begruessung}>
@@ -215,6 +224,70 @@ export default function Uebersicht() {
             onClick={() => naechstes && router.push(`/lernen/${naechstes.id}`)}
           >
             Weiter lernen
+            <i className="fa-solid fa-arrow-right" aria-hidden="true" />
+          </button>
+        </div>
+      </section>
+
+      {/*
+       * Die beiden Einstiege, die vorher nirgends zu finden waren.
+       *
+       * Der Quael-Modus stand nur auf der Setseite und dort nur, wenn das Set
+       * schon Fehler hatte – wer noch keinen Fehler gemacht hatte, sah ihn nie.
+       * Er steht jetzt auf der Uebersicht, sobald es Quael-Woerter gibt, und
+       * fuehrt direkt in eine Runde mit dem Set, in dem die meisten liegen.
+       */}
+      {quaelSet && (
+        <section className={`${styles.banner} ${styles.bannerQuael}`}>
+          <span className={styles.bannerSymbol} aria-hidden="true">
+            <IconFlamme />
+          </span>
+          <div className={styles.bannerText}>
+            <h2 className={styles.bannerTitel}>Quäl-Wörter</h2>
+            <p className={styles.bannerText2}>
+              {quaelGesamt === 1 ? "Ein Wort" : `${quaelGesamt} Wörter`} hast du dir
+              noch nicht gemerkt. Eine kurze Runde nur mit diesen Wörtern holt sie
+              zurück.
+            </p>
+          </div>
+          <div className={styles.bannerAktion}>
+            <button
+              type="button"
+              className={styles.bannerKnopf}
+              onClick={() => router.push(`/lernen/${quaelSet.id}?modus=quaelen`)}
+            >
+              <IconFlamme aria-hidden="true" />
+              Quäl-Wörter üben
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/*
+       * Der Wortschatz-Test lag bisher ausserhalb der App und war ueber keinen
+       * Weg von innen erreichbar. Hier steht er dauerhaft – aber er fuehrt
+       * NICHT auf die oeffentliche Werbeseite, sondern auf /mein-wortschatz:
+       * dort gibt es dieselbe Mechanik ohne Anmeldungs-Werbung, dafuer am Ende
+       * ein Set aus den Woertern, die man nicht kannte.
+       */}
+      <section className={styles.banner}>
+        <span className={styles.bannerSymbol} aria-hidden="true">
+          <i className="fa-solid fa-clipboard-question" />
+        </span>
+        <div className={styles.bannerText}>
+          <h2 className={styles.bannerTitel}>Wortschatz-Test</h2>
+          <p className={styles.bannerText2}>
+            Wie viele Wörter kennst du schon? In wenigen Minuten schätzt du deinen
+            Wortschatz – und die Wörter, die du nicht kanntest, werden direkt ein Set.
+          </p>
+        </div>
+        <div className={styles.bannerAktion}>
+          <button
+            type="button"
+            className={styles.bannerKnopf}
+            onClick={() => router.push("/mein-wortschatz")}
+          >
+            Test starten
             <i className="fa-solid fa-arrow-right" aria-hidden="true" />
           </button>
         </div>

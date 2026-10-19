@@ -13,6 +13,27 @@
     border-right: 1px solid var(--paper-text-soft-border);
     display: flex;
     flex-direction: column;
+    /*
+     * Die Leiste bleibt beim Scrollen stehen.
+     *
+     * Vorher fehlte das: .container hat nur min-height: 100dvh, waechst also
+     * mit dem Inhalt. Die Leiste wurde als Flex-Kind auf Volle Hoehe
+     * gestreckt und scrollte mit dem Dokument nach oben aus dem Bild – die
+     * Navigation war weg, sobald eine Seite laenger als der Bildschirm war.
+     *
+     * position: sticky loest das, ohne den Dokument-Scroll anzutasten:
+     * - die Seite scrollt weiter am Fenster (Next.js setzt beim Seitenwechsel
+     *   den Scroll zurueck und der Browser stellt ihn beim Zurueckgehen
+     *   wieder her; das bliebe bei einem eigenen Scroll-Container verloren),
+     * - die Leiste klebt an top: 0.
+     * align-self: flex-start ist noetig, sonst streckt der Flex-Container
+     * (align-items: stretch) die Leiste auf die volle Inhaltshoehe und
+     * sticky hat nichts, woran es haengen koennte.
+     */
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    height: 100dvh;
     overflow-y: auto;
     overscroll-behavior: contain;
 }
@@ -126,6 +147,9 @@
         left: 0;
         right: 0;
         top: auto;
+        /* Ohne das schleppt die Desktop-Hoehe 100dvh die untere Tableiste
+           ueber den ganzen Bildschirm. */
+        height: auto;
         width: 100%;
         flex-direction: row;
         align-items: stretch;

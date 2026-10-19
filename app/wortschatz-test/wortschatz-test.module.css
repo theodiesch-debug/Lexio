@@ -1,15 +1,18 @@
 /*
- * Styles der Wortschatz-Test-Seite `/wortschatz-test`.
+ * Styles der oeffentlichen Seite `/wortschatz-test`.
  *
- * Dieselbe Regel wie auf /vokabeln-aus-text und /quellen: nur Variablen aus
- * global.css, keine eigene Farbe. Die Seite steht in hell und dunkel, ohne
- * dass hier eine Farbe nachgepflegt werden muss.
+ * Hier stehen nur noch die Rahmen-Teile der Seite: Kopf, Textspalte, die
+ * Abschnitte unter dem Test und der Abschluss-Kasten. Der Test selbst und
+ * seine Karte liegen in `components/wortschatz-test/wortschatz-test.module.css`,
+ * weil ihn auch die App auf /mein-wortschatz zeigt.
+ *
+ * Nur Variablen aus global.css, keine eigene Farbe – hell und dunkel ohne
+ * Nachpflege.
  *
  * Aufbau: EINE Spalte. Der Testkasten und der Text darunter teilen dieselbe
- * Breite, damit der Sprung von der Karte zum Erklärtext kein Seitenwechsel
- * ist. Responsiv von Anfang an: die Breiten laufen über `min()` und
- * `clamp()`, es gibt einen Breakpoint, und kein Element hat eine feste
- * Pixelbreite.
+ * Breite, damit der Sprung von der Karte zum Erklaertext kein Seitenwechsel
+ * ist. Responsiv von Anfang an: die Breiten laufen ueber `min()` und
+ * `clamp()`, kein Element hat eine feste Pixelbreite.
  */
 
 .seite {
@@ -29,7 +32,7 @@
 .zurueck {
   display: inline-flex;
   align-items: center;
-  /* 44 px wie überall: die Zeile darf auf dem Telefon nicht unter die
+  /* 44 px wie ueberall: die Zeile darf auf dem Telefon nicht unter die
      Fingergrenze rutschen. */
   min-height: var(--touch, 44px);
   padding: 0.5rem 0.9rem;
@@ -97,7 +100,7 @@
 }
 
 /* Trennlinie vor den Abschnitten unterhalb des Testkastens – ohne sie
-   liest man die Erklärung als Teil der Oberfläche. */
+   liest man die Erklaerung als Teil der Oberflaeche. */
 .abschnitt {
   border-top: 1px solid var(--line);
   padding-top: 0.5rem;
@@ -109,354 +112,6 @@
   padding-top: 1.5rem;
   margin-top: 2.5rem;
   border-top: 1px solid var(--line);
-}
-
-/* --------------------------------------------------------------- Kasten -- */
-
-/*
- * Der Testkasten. Er ist in allen drei Phasen dieselbe Fläche – die Karte
- * darin wächst und schrumpft, der Rahmen bleibt. Ein springender Rahmen bei
- * jedem Wort wäre Unruhe in einer Ansicht, die man 25-mal ansieht.
- */
-.kasten {
-  border: 1px solid var(--line);
-  background: var(--card-bg);
-  border-radius: var(--radius, 16px);
-  padding: clamp(1rem, 4vw, 1.5rem);
-  box-shadow: var(--shadow-soft);
-  margin-bottom: 2.5rem;
-}
-
-.hinweisKlein {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-muted, var(--text-secondary));
-  margin: 0 0 0.5rem;
-}
-
-.kastenTitel {
-  font-family: var(--serif);
-  font-size: clamp(1.25rem, 5vw, 1.5rem);
-  line-height: 1.25;
-  margin: 0 0 0.75rem;
-}
-
-.kastenText {
-  color: var(--text-secondary);
-  line-height: 1.65;
-  max-width: 60ch;
-}
-
-.startKnopf {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  min-height: var(--touch, 44px);
-  padding: 0.7rem 1.4rem;
-  margin-top: 0.5rem;
-  border-radius: 999px;
-  border: 1px solid transparent;
-  background: var(--gold);
-  color: var(--ink, #0e0c09);
-  font: inherit;
-  font-weight: 600;
-  font-size: 1rem;
-  cursor: pointer;
-  text-decoration: none;
-}
-
-.startKnopf:hover {
-  background: var(--gold-dark, var(--gold));
-}
-
-.startKnopf:focus-visible {
-  outline: 3px solid var(--gold);
-  outline-offset: 2px;
-}
-
-.startKnopf:disabled {
-  opacity: 0.7;
-  cursor: progress;
-}
-
-.leiseKnopf {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: var(--touch, 44px);
-  padding: 0.7rem 1.4rem;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: transparent;
-  color: var(--text-primary);
-  font: inherit;
-  font-weight: 600;
-  font-size: 1rem;
-  cursor: pointer;
-  text-decoration: none;
-}
-
-.leiseKnopf:hover {
-  background: var(--bg-elevated);
-  border-color: var(--text-muted);
-}
-
-.leiseKnopf:focus-visible {
-  outline: 3px solid var(--gold);
-  outline-offset: 2px;
-}
-
-.fehler {
-  color: var(--terracotta);
-  font-size: 0.9375rem;
-  line-height: 1.5;
-  margin: 0.75rem 0 0;
-}
-
-/* ---------------------------------------------------------- Fortschritt -- */
-
-.fortschritt {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1.25rem;
-}
-
-.fortschrittBalken {
-  flex: 1;
-  height: 7px;
-  min-width: 0;
-  background: var(--bg-elevated-2);
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.fortschrittFuellung {
-  height: 100%;
-  background: var(--gold);
-  border-radius: 999px;
-  transition: width 240ms ease;
-}
-
-.fortschrittText {
-  font-family: var(--mono);
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-
-/* --------------------------------------------------------------- Karte -- */
-
-.karte {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  min-height: clamp(9rem, 34vh, 14rem);
-  padding: 1.5rem 1rem;
-  border-radius: calc(var(--radius, 16px) - 4px);
-  background: var(--bg-elevated-2);
-  border: 1px solid var(--line);
-  text-align: center;
-}
-
-.karte:focus {
-  outline: none;
-}
-
-.karteFrage {
-  font-family: var(--serif);
-  font-size: clamp(1.75rem, 8vw, 2.75rem);
-  font-weight: 600;
-  line-height: 1.15;
-  margin: 0;
-  /* Lange Wörter und Wortgruppen („der, die, das“) müssen umbrechen
-     dürfen, sonst schiebt das Wort die Spalte auf dem Telefon über den
-     Rand. */
-  overflow-wrap: anywhere;
-}
-
-.karteAuftrag {
-  font-size: 0.9375rem;
-  color: var(--text-muted, var(--text-secondary));
-  margin: 0;
-}
-
-.antworten {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  margin-top: 1rem;
-}
-
-.ja,
-.nein {
-  flex: 1 1 8rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  min-height: var(--touch, 44px);
-  padding: 0.8rem 1rem;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  font: inherit;
-  font-weight: 600;
-  font-size: 1rem;
-  cursor: pointer;
-}
-
-.ja {
-  background: var(--sage);
-  border-color: transparent;
-  color: var(--ink, #0e0c09);
-}
-
-.ja:hover {
-  filter: brightness(1.08);
-}
-
-.nein {
-  background: transparent;
-  color: var(--text-primary);
-}
-
-.nein:hover {
-  background: var(--bg-elevated);
-  border-color: var(--text-muted);
-}
-
-.ja:focus-visible,
-.nein:focus-visible {
-  outline: 3px solid var(--gold);
-  outline-offset: 2px;
-}
-
-.taste {
-  font-family: var(--mono);
-  font-size: 0.75rem;
-  padding: 0.1em 0.45em;
-  border-radius: 5px;
-  border: 1px solid currentColor;
-  opacity: 0.65;
-}
-
-/* -------------------------------------------------------------- Ergebnis -- */
-
-.ergebnisTitel {
-  font-family: var(--serif);
-  font-size: clamp(1.5rem, 6vw, 2.125rem);
-  line-height: 1.2;
-  margin: 0 0 0.5rem;
-}
-
-.ergebnisTitel strong {
-  color: var(--gold);
-  font-weight: 700;
-}
-
-.ergebnisTitel:focus {
-  outline: none;
-}
-
-.ergebnisUnterzeile {
-  color: var(--text-secondary);
-  line-height: 1.6;
-  margin: 0 0 1.25rem;
-}
-
-.gesamtbalken {
-  height: 12px;
-  background: var(--bg-elevated-2);
-  border-radius: 999px;
-  overflow: hidden;
-  margin-bottom: 1.75rem;
-}
-
-.gesamtfuellung {
-  height: 100%;
-  background: var(--gold);
-  border-radius: 999px;
-  transition: width 400ms ease;
-}
-
-.baender {
-  list-style: none;
-  margin: 0 0 1.5rem;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1.1rem;
-}
-
-.bandKopf {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.bandTitel {
-  font-weight: 600;
-  line-height: 1.35;
-}
-
-.bandWert {
-  font-family: var(--mono);
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-
-.bandBalken {
-  height: 8px;
-  background: var(--bg-elevated-2);
-  border-radius: 999px;
-  overflow: hidden;
-  margin: 0.4rem 0 0.3rem;
-}
-
-.bandFuellung {
-  height: 100%;
-  background: var(--sage);
-  border-radius: 999px;
-  transition: width 400ms ease;
-}
-
-.bandSchaetzung {
-  font-size: 0.875rem;
-  color: var(--text-muted, var(--text-secondary));
-  margin: 0;
-}
-
-.ehrlich {
-  font-size: 0.9375rem;
-  line-height: 1.6;
-  color: var(--text-secondary);
-  border-left: 3px solid var(--terracotta);
-  padding-left: 0.85rem;
-  margin: 0 0 1.5rem;
-}
-
-.ergebnisAktionen {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-}
-
-.quelle {
-  font-size: 0.8125rem;
-  color: var(--text-muted, var(--text-secondary));
-  line-height: 1.5;
-  margin: 1.25rem 0 0;
-}
-
-.quelle a {
-  color: var(--text-secondary);
 }
 
 /* ----------------------------------------------------------- Abschluss -- */
@@ -519,17 +174,4 @@
 .knopfLeise:focus-visible {
   outline: 3px solid var(--gold);
   outline-offset: 2px;
-}
-
-/* ---------------------------------------------------------- Breakpoint -- */
-
-@media (max-width: 560px) {
-  .kasten {
-    padding: 0.9rem;
-  }
-
-  .ergebnisAktionen .startKnopf,
-  .ergebnisAktionen .leiseKnopf {
-    flex: 1 1 auto;
-  }
 }

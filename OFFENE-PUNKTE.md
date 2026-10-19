@@ -1279,3 +1279,57 @@ nachgerechnet (3 von 5 im ersten Band, 97 Wörter → 58); „Nochmal" beginnt n
 **Stand danach:** Web **268 Tests**, Lint 0 Errors (9 vorbestehende
 Warnungen in `legacy/`), `next build` ok, `toten-code` ohne Befund. Drei
 Wegwerf-Konten (Export, Quäl-Design, …) wieder gelöscht.
+
+### Einstiege sichtbar gemacht, Navbar bleibt stehen
+
+**Navbar.** Die Seitenleiste scrollte mit, sobald der Inhalt länger wurde.
+Ursache war `.container { min-height: 100dvh }` in Verbindung mit der
+Flex-Streckung: die Seite wuchs über den Bildschirm hinaus, die Leiste wurde
+mitgestreckt und verschwand oben. `components/navbar/side-bar.css` setzt sie
+jetzt auf `position: sticky; top: 0; align-self: flex-start; height: 100dvh`;
+in der Mobil-Ansicht bleibt sie eine Leiste (`height: auto`). Der
+Dokument-Scroll und die Scroll-Wiederherstellung von Next bleiben erhalten.
+
+**Einstiege.** Quäl-Wörter standen nur auf der Setseite und dort nur, wenn es
+schon Fehler gab. Jetzt gibt es auf der Übersicht zwei Banner: Quäl-Wörter
+(sobald `quaelAnzahl > 0`, führt in das Set mit den meisten Fehlern) und
+Wortschatz-Test. Die Setseite erklärt den Quäl-Knopf auch dann, wenn es noch
+nichts zu üben gibt. `GET /api/karteikarten` liefert dafür `quaelAnzahl` je
+Set (eigene Abfrage auf `karten_fortschritt`, `fehler >= 1`, Fallback 0).
+
+**Live belegt** (`/tmp/opencode/ux-navigation-pruefung.mjs`, 17/17): Leiste
+bleibt beim Scrollen bei `y≈0`, Banner erscheinen nur mit Fehlern bzw. immer,
+Klicks führen richtig, Mobil-Tableiste bleibt Leiste, 390 px ohne Querscroll,
+keine Konsolenfehler.
+
+### Wortschatz-Test: Aufdecken, zwei Fassungen, Set aus Unbekannten
+
+Der Test zeigt die deutsche Stichprobe und **deckt jetzt erst die englische
+Antwort auf**, bevor bewertet wird. Vorher stand „Kenne ich" da, ohne dass
+eine Antwort zu sehen war; das verlangte eine Einschätzung ohne Prüftafel.
+Tastatur: Leertaste/Enter deckt auf, danach 1/2 wie bisher.
+
+**Zwei Fassungen, ein Bauteil.** `components/wortschatz-test/` enthält den
+Test; `variante="werbung"` ist die öffentliche Seite `/wortschatz-test`
+(Anmelde-Hinweis, Quellenangabe, kein Set), `variante="konto"` ist die neue
+App-Seite `/mein-wortschatz` (keine Werbung, am Ende die Wirkung). Der
+Übersicht-Banner führt bewusst auf `/mein-wortschatz`, nicht auf die
+Werbeseite.
+
+**Set aus Unbekannten.** Am Ende listet die App-Fassung die Wörter, bei denen
+„Wusste ich nicht" gewählt wurde, und legt daraus per `POST /api/sets` +
+`POST /api/karten` ein Set an (Name mit Datum, Sprache `en`). Die Karten
+behalten die Orientierung des Tests: vorne deutsch, hinten englisch.
+
+**Live belegt** (`/tmp/opencode/wortschatz-test-reveal-pruefung.mjs`,
+**473/473**): Antwort vor dem Aufdecken nicht im DOM, nach dem Aufdecken
+sichtbar; je ein Knopf vor, zwei nach dem Aufdecken; Fortschritt 1–25;
+öffentliche Fassung mit Anmeldung/Quelle und ohne Set-Knopf; zwei Läufe
+zeigen verschiedene Wörter; App-Fassung nennt genau die 7 nicht gekannten
+Wörter, legt ein Set mit 7 Karten an (vorhanden über `GET /api/karten`),
+Vorderseite deutsch, Rückseite die aufgedeckte Antwort; Banner führt auf
+`/mein-wortschatz`; 390 px ohne Querscroll, Bewertungsknöpfe ≥ 44 px; keine
+Konsolenfehler. Wegwerf-Konto danach gelöscht.
+
+**Stand danach:** Web **268 Tests**, Lint 0 Errors (9 vorbestehende
+Warnungen in `legacy/`), `next build` ok, `toten-code` ohne Befund.

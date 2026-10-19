@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { headers } from "next/headers";
-import WortschatzTest from "./wortschatz-test";
+import WortschatzTest from "@/components/wortschatz-test/wortschatz-test";
 import styles from "./wortschatz-test.module.css";
 
 /**
@@ -115,8 +115,8 @@ export default async function WortschatzTestSeite() {
         <p className={styles.einleitung}>
           Die meisten schätzen ihren Wortschatz nach Gefühl – und liegen weit daneben, in beide
           Richtungen. Dieser Test macht aus dem Gefühl eine Zahl: 25 Wörter aus fünf
-          Häufigkeitsstufen, deine Einschätzung, eine ehrliche Hochrechnung. Zwei Minuten, ohne
-          Konto.
+          Häufigkeitsstufen, aufdecken, ehrlich einschätzen, eine ehrliche Hochrechnung. Zwei
+          Minuten, ohne Konto.
         </p>
 
         <WortschatzTest />

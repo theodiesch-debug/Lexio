@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { holeJson, ApiFehler } from "@/lib/api-client";
-import { IconBearbeiten, IconHaken, IconLoeschen } from "@/components/icone";
+import { IconBearbeiten, IconFlamme, IconHaken, IconLoeschen } from "@/components/icone";
 import styles from "./wortschatz.module.css";
 
 type Karte = {
@@ -467,15 +467,27 @@ export default function VokabelnSeite({ setSlug }: { setSlug: string }) {
          * weil genau hier jemand steht, der sein Set ansieht: Wer „die
          * hässlichen Wörter will", findet sie am ehesten neben dem
          * Lernknopf.
+         *
+         * Vorher erschien der Weg nur bei `quaelAnzahl > 0`. Wer noch keinen
+         * Fehler gemacht hatte, sah den Modus nirgends und hielt ihn für
+         * nicht vorhanden. Jetzt steht an dieser Stelle immer etwas: der
+         * Knopf, sobald es Quäl-Wörter gibt, sonst eine Zeile, die sagt,
+         * wie sie entstehen.
          */}
-        {quaelAnzahl > 0 && (
+        {quaelAnzahl > 0 ? (
           <button
             type="button"
             className={styles.knopfLeise}
             onClick={() => router.push(`/lernen/${setSlug}?modus=quaelen`)}
           >
+            <IconFlamme aria-hidden="true" />
             Quäl-Wörter ({quaelAnzahl})
           </button>
+        ) : (
+          <p className={styles.quaelHinweis}>
+            <IconFlamme aria-hidden="true" />
+            Quäl-Wörter entstehen, wenn du Wörter nicht weißt – hier sind noch keine.
+          </p>
         )}
       </div>
 
