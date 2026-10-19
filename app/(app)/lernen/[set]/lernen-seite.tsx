@@ -1113,16 +1113,31 @@ if (karten.length === 0) {
                 </div>
             </header>
 
+            {/*
+             * Die Marke des Modus. Steht sie hier, weiß jeder, der den
+             * Bildschirm ansieht, dass das keine normale Runde ist – auch
+             * wenn er später nur einen Screenshot sieht. `role="status"`
+             * meldet sie beim Start der Runde, ohne den Fokus zu stehlen.
+             */}
+            {quaelModus && (
+                <p className={styles.modusMarke} role="status">
+                    <IconFlamme />
+                    Quäl-Wörter
+                </p>
+            )}
+
             {aufblitzen !== null && (
                 <div className={styles.xpPop} aria-live="polite">
                     +{aufblitzen} XP
                 </div>
             )}
 
-            <div className={styles.buehne}>
+            <div className={`${styles.buehne} ${quaelModus ? styles.buehneQuael : ""}`}>
                 <button
                     type="button"
-                    className={`${styles.karte} ${aufgedeckt ? styles.karteAufgedeckt : ""}`}
+                    className={`${styles.karte} ${aufgedeckt ? styles.karteAufgedeckt : ""} ${
+                        quaelModus ? styles.karteQuael : ""
+                    }`}
                     style={farbe ? ({ ["--kartenFarbe" as string]: farbe } as React.CSSProperties) : undefined}
                     onClick={umdrehen}
                     aria-label={aufgedeckt ? "Antwort verbergen" : "Antwort aufdecken"}

@@ -814,6 +814,85 @@
     color: #17110a;
 }
 
+/* --------------------------------------------------- Quäl-Wörter-Modus */
+
+/*
+ * Das Quäl-Wörter-Rund sieht aus wie eine normale Runde – mit Ausnahme des
+ * Endschirms und eines kleinen Labels auf der Karte. Für einen Modus, in dem
+ * es bewusst um die hässlichen Wörter geht, ist das zu wenig: man merkt den
+ * Unterschied erst, wenn man eine Karte aufdeckt.
+ *
+ * Deshalb drei Zeichen, die zusammen sagen „anderer Modus":
+ *
+ *   1. Eine Marke unter der Kopfzeile. Terrakotta, wie die Problemskarte –
+ *      dieselbe Farbe bedeutet hier dasselbe: hier geht es um Fehler.
+ *   2. Ein warmer Schimmer auf der Bühne hinter der Karte. Kein Farbwechsel
+ *      der Karte selbst: die Sprachfarbe ist Information (sie sagt, welche
+ *      Sprache gemeint ist), und die darf ein Modus nicht nehmen.
+ *   3. Ein Ring um die Karte. Er macht sichtbar, dass diese Karte hier
+ *      steht, weil sie Fehler hat – und nicht, weil sie zufällig fällig ist.
+ *
+ * Bewusst ohne Animation. Ein pulsierender Ring würde eine Runde aus Wörtern,
+ * die sowieso schon Stress machen, noch unruhiger machen.
+ */
+.modusMarke {
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0.3rem 0.85rem;
+    border-radius: 999px;
+    background: rgba(184, 66, 84, 0.16);
+    border: 1px solid var(--terracotta);
+    color: #ffd9de;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+[data-design="hell"] .modusMarke {
+    color: #6b0f1d;
+}
+
+.modusMarke svg {
+    flex: 0 0 auto;
+}
+
+.buehneQuael {
+    /*
+     * Radialer Schimmer statt Flächenfarbe: die Fläche bleibt die des
+     * Designs, und nur hinter der Karte wird es warm. `ellipse` mit
+     * ausgeschaltetem Zentrum unter der Karte verhindert einen harten
+     * Rand, an dem die Wärme aufhört.
+     */
+    background: radial-gradient(
+        ellipse 55% 45% at 50% 46%,
+        rgba(184, 66, 84, 0.16),
+        transparent 72%
+    );
+}
+
+.karteQuael {
+    /*
+     * `border-radius: 22px` ist derselbe Wert wie auf .kartenSeite – sonst
+     * würde der Ring an den Ecken abstehen wie ein aufgeklebter Aufkleber.
+     * Der Ring liegt auf dem Button, nicht auf der Kartenfläche: er ist
+     * damit außen sichtbar und nimmt der Sprachfarbe nichts weg.
+     */
+    border-radius: 22px;
+    box-shadow:
+        0 0 0 2px rgba(184, 66, 84, 0.55),
+        0 0 36px rgba(184, 66, 84, 0.28);
+}
+
+[data-design="hell"] .karteQuael {
+    box-shadow:
+        0 0 0 2px rgba(184, 66, 84, 0.7),
+        0 0 36px rgba(184, 66, 84, 0.22);
+}
+
 /*
  * Das Speichern ist fehlgeschlagen. Die Karte liegt noch da, die Bewertung
  * kann erneut gesendet werden – die Meldung sagt das auch, sonst liest man
