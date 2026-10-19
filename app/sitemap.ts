@@ -8,7 +8,7 @@ import { beurteileUspZugang } from "@/lib/usp-zugang";
  * /anmelden, /passwort-aendern und /passwort-zuruecksetzen sind per
  * `robots: { index: false }` noindex, und der gesamte (app)-Bereich liegt
  * hinter einer Anmeldung. Die Sitemap listet deshalb nur die Seiten, die
- * ohne Konto abrufbar sind: die Startseite und /quellen.
+ * ohne Konto abrufbar sind: die Startseite, /quellen und /wortschatz-test.
  *
  * /quellen steht mit drin, weil die Quellenangabe nicht nur dekorativ ist.
  * Die Wortlisten sind Bearbeitungen fremder Quellen unter CC BY-SA; wer sie
@@ -24,7 +24,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
    * und traegt zentral `robots: { index: false }` – eine Sitemap mit noindex-
    * Adressen sagt Suchmaschinen nur, wo nichts zu finden ist.
    */
-  const routes: string[] = ["/", "/quellen"];
+  const routes: string[] = ["/", "/quellen", "/wortschatz-test"];
 
   /*
    * Die USP-Seite nur, wenn sie wirklich offen ist. Eine Adresse in der
