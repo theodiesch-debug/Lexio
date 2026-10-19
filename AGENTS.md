@@ -18,7 +18,10 @@ Drei Regeln gelten für jede Arbeit hier, sie stehen in `LEXIO-PLAN.md` unter
 
 Sagt der Nutzer **„setze das jetzt alles um"**, gilt zusätzlich:
 
-**Nach jedem funktionierenden Schritt committen und auf `origin/main` pushen.**
+**Nach jedem funktionierenden Schritt committen und auf `lexio-neu/main`
+pushen.** (Der Remote heißt `lexio-neu`, nicht `origin` — `origin` zeigt auf
+`croissant1qp1-hue/lexio`, ein anderes Repository. Upstream von `main` ist
+`lexio-neu/main`, das ist der Stand, den Vercel baut.)
 
 Ein „funktionierender Schritt" ist einer, der im laufenden System geprüft ist
 — also `npm run build` und `npm run lint` sauber und die Änderung tut, was sie
@@ -48,6 +51,30 @@ verbindliche Referenz.
 
 Nicht verwechseln: `OFFENE-PUNKTE.md` beschreibt den **Zustand des Codes**,
 `LEXIO-PLAN.md` beschreibt den **Umbauauftrag**.
+
+## „Überallhin?" — die Frage vor dem Push
+
+**Ab 2026-10-18, vom Nutzer angeordnet: Ist eine Änderung vollständig und
+geprüft, fragt Kiro genau eine Frage: „Überallhin?"** Erst die Antwort
+entscheidet, was passiert. Diese Regel schlägt das automatische Pushen aus
+dem Abschnitt oben — auch dort, wo „setze das jetzt alles um" gesagt wurde.
+
+**Antwort „ja"** — in dieser Reihenfolge:
+
+1. Committen mit ausdrücklichen Pfaden (wie oben) und auf `lexio-neu/main`
+   pushen. Das löst das Deployment der Web-App auf Vercel aus.
+2. Nach dem Push nachsehen, dass die Seite wirklich neu da ist — Statuscode
+   und Inhalt, nicht nur „Push war erfolgreich".
+3. **Die React-Native-APK nur dann neu bauen, wenn sich `lexio-app/` oder
+   eine geteilte Datei (etwa `lib/`) geändert hat.** Reine Web-Änderungen
+   unter `app/` landen nicht in der APK; ein Gradle-Build wäre dort
+   vergebene Arbeit. Bauvariante (JDK-, SDK-Pfade, Logpfad, `setsid
+   nohup`) steht in `LEXIO-PLAN.md`, Abschnitt zur App.
+
+**Antwort „nein" oder „erst später"** — nichts passiert: nicht committen,
+nicht pushen, nicht bauen. Der Arbeitsbaum bleibt liegen, wie er ist.
+
+Diese Regel steht hier, weil Kiro sich zwischen Sitzungen nichts merkt.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
