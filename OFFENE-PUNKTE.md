@@ -1206,3 +1206,76 @@ Meldung der Vorprüfung aus statt einer rohen 500.
 **Stand danach:** Web 227 Tests, Lint 0 Errors, `next build` ok.
 Wegwerf-Konto, Server und Sessiondatei wieder entfernt; die Datenbank ist auf
 2286/9 zurück.
+
+## Nachtrag 2026-10-19 — drei Web-Features: Export, Quäl-Wörter-Modus, Wortschatz-Test
+
+Der Nutzer hat aus der Ideenliste drei Web-Features gewählt und „mit /ja" die
+Freigabe für den ganzen Weg erteilt (bauen, prüfen, committen, pushen). Alle
+drei sind am laufenden System geprüft, nicht am Bildschirm geschätzt.
+
+### Export als CSV und TSV (Feature 5)
+
+**`lib/export.ts`**, **`app/api/sets/[slug]/export/route.ts`**, Knöpfe auf der
+Set-Seite (`app/(app)/wortschatz/[set]/vokabeln-seite.tsx`). Auth über die
+Session oder `Authorization: Bearer`; fremde Sets antworten 404 über die RLS,
+Gäste 401. Grenze 5000 Karten, bei Kürzung `X-Lexio-Gekuerzt: ja`.
+
+**Format-Entscheidungen, die man sieht, wenn man sie falsch macht:**
+CSV mit Semikolon, CRLF und BOM, **ohne Kopfzeile** — Anki und Quizlet lesen
+eine Kopfzeile sonst als erste Karte. Nur Felder mit `;`, Anführungszeichen
+oder Zeilenumbruch werden gequotet, Anführungszeichen verdoppelt. TSV mit Tab
+und LF, Tab und Zeilenumbruch im Feld werden zu einem Leerzeichen, weil ein
+Tab im TSV-Feld in Anki eine Spalte zu viel erzeugt.
+
+**Am laufenden System belegt** (`/tmp/opencode/export-pruefung.mjs`, später
+gelöscht): Konto mit Set aus fünf Karten mit heiklen Inhalten (Semikolon,
+`"`, Tab, Zeilenumbruch, Umlaute). CSV beginnt mit der BOM und hat fünf
+CRLF-Zeilen, das Semikolon-Feld ist gequotet, `"` ist verdoppelt, der
+Zeilenumbruch bleibt im Feld; TSV hat vier Felder je Zeile und keine Tabs in
+den Feldern; ohne `format` kommt byteweise dasselbe wie `format=csv`;
+unbekanntes Set 404, ohne Anmeldung 401; das Demoset exportiert. **16 von 16
+Prüfungen grün.** 14 Tests in `tests/export.test.ts` (eigener CSV-Feld-Splitter
+mit Quotes).
+
+### Quäl-Wörter-Modus bekommt ein eigenes Erscheinungsbild (Feature 6)
+
+Der Modus (Commit `280100b`) war funktional, aber optisch nicht von einer
+normalen Runde zu unterscheiden. Nachgezogen in der Lernseite
+(`app/(app)/lernen/[set]/`): eine Modus-Marke unter der Kopfzeile, ein warmer
+Schimmer auf der Bühne hinter der Karte, ein Terrakotta-Ring um die Karte.
+Bewusst ohne Animation — eine Runde aus ohnehin schwierigen Wörtern soll nicht
+unruhiger werden; und die Sprachfarbe auf der Karte bleibt, weil sie
+Information trägt.
+
+**Am laufenden System belegt** (`/tmp/opencode/quael-design.mjs`): Marke
+sichtbar unter der Kopfzeile, Bühne mit `radial-gradient` in Terrakotta, Karte
+mit Terrakotta-Ring; Gegenprobe im normalen Modus: keine Marke, kein Ring; bei
+360 px kein waagerechter Bildlauf; Karte bleibt im Bild; keine
+Konsolenfehler. Wegwerf-Konto danach gelöscht.
+
+### Wortschatz-Test (Feature 1)
+
+**`/wortschatz-test`** ist eine öffentliche, indexierbare Seite (in der
+Sitemap). Aus jedem der fünf NGSL-Frequenzbänder werden fünf Wörter gezogen
+(25 gesamt), der Nutzer entscheidet „Kenne ich" oder „Kenn ich nicht", das
+Ergebnis wird pro Band hochgerechnet.
+
+**`scripts/wortschatz-test-erzeugen.mjs`** schreibt `public/wortschatz-test.json`
+(81 kB) aus `scripts/wortlisten/`; **bandübergreifend dedupliziert**, weil
+dieselbe Vokabel vorher in mehreren Bändern stand (236 Fälle) und die
+Hochrechnung sonst dieselbe Karte doppelt zählte. `public/` wird von
+`scripts/toten-code.mjs` ohnehin ignoriert. `lib/wortschatz-test.ts` zieht die
+Stichprobe ohne Wiederholung und rechnet **pro Band** — ein ungetestetes Band
+bleibt `null` und wird nicht als Null in die Summe geschmuggelt. Die
+Stichprobengröße steht im Ergebnis mit dabei.
+
+**Am laufenden System belegt** (`/tmp/opencode/wortschatz-test-pruefung.mjs`):
+Titel, canonical und FAQ-JSON-LD in der ausgelieferten HTML, kein `noindex`;
+Ablauf Start → 25 Wörter → Ergebnis; Tastatur 1/2 blättert; Ergebnis
+nachgerechnet (3 von 5 im ersten Band, 97 Wörter → 58); „Nochmal" beginnt neu;
+360 px ohne Bildlauf, beide Antwortknöpfe ≥ 44 px; keine Konsolenfehler.
+**14 Tests** in `tests/wortschatz-test.test.ts`.
+
+**Stand danach:** Web **268 Tests**, Lint 0 Errors (9 vorbestehende
+Warnungen in `legacy/`), `next build` ok, `toten-code` ohne Befund. Drei
+Wegwerf-Konten (Export, Quäl-Design, …) wieder gelöscht.
