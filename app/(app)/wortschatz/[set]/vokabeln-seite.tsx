@@ -96,6 +96,62 @@ export default function VokabelnSeite({ setSlug }: { setSlug: string }) {
    */
   const [fokusAnlass, setFokusAnlass] = useState<number | null>(null);
 
+  /**
+   * Export. `exportLaeuft` sperrt die Knöpfe gegen Doppelklicks, und
+   * `exportFehler` sagt, was schiefging – ein still fehlgeschlagener
+   * Download sieht aus wie ein getäteter, nur ohne Datei.
+   */
+  const [exportLaeuft, setExportLaeuft] = useState(false);
+  const [exportFehler, setExportFehler] = useState<string | null>(null);
+
+  /*
+   * Herunterladen über die Route, nicht aus den bereits geladenen Karten.
+   *
+   * Die Liste hier oben ist auf 500 Karten begrenzt (siehe /api/karten),
+   * die Route liest den ganzen Bestand. Außerdem enthält die Route die
+   * Datei-Kopfzeilen, die Excel und Anki brauchen – nachzubauen wäre eine
+   * zweite Stelle, an derselben Formatierungsregel gepflegt wird, und die
+   * würde irgendwann auseinanderfallen.
+   *
+   * Der Browser speichert selbst: die Route meldet `Content-Disposition:
+   * attachment`, und ein Klick auf den Link genügt. Ein Blob hier im
+   * Client würde den Text erst durch Base64 jagen, nur um ihn danach
+   * wieder auszupacken.
+   */
+  async function exportieren(format: "csv" | "tsv") {
+    setExportFehler(null);
+    setExportLaeuft(true);
+    try {
+      const res = await fetch(
+        `/api/sets/${encodeURIComponent(setSlug)}/export?format=${format}`,
+        { credentials: "same-origin" },
+      );
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? `Der Export antwortete mit ${res.status}.`);
+      }
+      const dateiname =
+        res.headers.get("Content-Disposition")?.match(/filename="([^"]+)"/)?.[1] ??
+        `${setSlug}.${format}`;
+      const text = await res.text();
+      const blob = new Blob([text], { type: format === "csv" ? "text/csv" : "text/tab-separated-values" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = dateiname;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setExportFehler(
+        e instanceof Error ? e.message : "Die Datei konnte nicht erstellt werden.",
+      );
+    } finally {
+      setExportLaeuft(false);
+    }
+  }
+
   useEffect(() => {
     let abgebrochen = false;
 
@@ -422,6 +478,54 @@ export default function VokabelnSeite({ setSlug }: { setSlug: string }) {
           </button>
         )}
       </div>
+
+      {/*
+       * Export. Eigener Block unter den Hauptknöpfen, nicht daneben: das
+       * Set lernen ist der Grund, warum jemand hier ist, und der Export
+       * ist der Weg, den man nur manchmal geht. Zwei weitere Knöpfe in
+       * derselben Reihe würden den Hauptweg unsichtbar machen.
+       *
+       * Die Spaltenreihenfolge steht ausdrücklich im Text. Wer Anki oder
+       * Quizlet vor dem Import nach den Spalten fragt, soll die Antwort
+       * schon vor dem Klick gelesen haben und nicht in der Datei suchen.
+       */}
+      {alle.length > 0 && (
+        <div className={styles.export}>
+          <p className={styles.exportText}>
+            Exportieren für Excel, Anki oder Quizlet. Reihenfolge: Vorderseite, Rückseite,
+            Beispielsatz, Satzübersetzung.
+          </p>
+          <div className={styles.exportKnopfe}>
+            <button
+              type="button"
+              className={styles.knopfLeise}
+              onClick={() => void exportieren("csv")}
+              disabled={exportLaeuft}
+            >
+              CSV
+            </button>
+            <button
+              type="button"
+              className={styles.knopfLeise}
+              onClick={() => void exportieren("tsv")}
+              disabled={exportLaeuft}
+            >
+              TSV
+            </button>
+          </div>
+          {/*
+           * `role="status"` und nicht `role="alert"`: ein Fehlschlag beim
+           * Download ist ärgerlich, aber kein Notfall – und alert würde
+           * screenreaderseitig den Fokus wegnehmen, während der Nutzer
+           * gerade auf einem Knopf steht.
+           */}
+          {exportFehler && (
+            <p className={styles.exportFehler} role="status">
+              {exportFehler}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

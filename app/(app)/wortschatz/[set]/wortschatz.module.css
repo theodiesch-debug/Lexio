@@ -402,3 +402,59 @@
     background: var(--bg-elevated-2);
     color: var(--text-primary);
 }
+
+/*
+ * Der Export-Block unter den Hauptknöpfen.
+ *
+ * Bewusst leiser als die Aktionen darüber: ein Trennstrich, ein Satz,
+ * zwei kleine Knöpfe. Der Export ist ein Werkzeug, das man braucht, wenn
+ * man es braucht – er soll nicht wie eine zweite Hauptaktion aussehen.
+ * Der Abstand nach oben trennt ihn sichtbar von „Set lernen", ohne eine
+ * zweite Box zu zeichnen.
+ */
+.export {
+    margin-top: 2rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.7rem;
+}
+
+.exportText {
+    margin: 0;
+    max-width: 34rem;
+    text-align: center;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+.exportKnopfe {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.6rem;
+}
+
+/*
+ * Nur der Text, kein Kasten: ein Fehlschlag beim Download steht da, wo
+ * auch die Erklärung steht. Ein roter Kasten über der ganzen Seite wäre
+ * unverhältnismäßig für etwas, das oft nur ein zuverbindlicher WLAN-
+ * Moment ist.
+ */
+.exportFehler {
+    margin: 0;
+    max-width: 34rem;
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--terracotta);
+}
+
+/* Gesperrte Knöpfe sollen auch so aussehen, sonst liest man den Zustand
+   als „hat nichts getan". */
+.exportKnopfe button:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
