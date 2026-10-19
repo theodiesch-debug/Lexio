@@ -95,6 +95,23 @@ export async function GET(request: Request) {
    */
   const leechModus = suche.get("modus") === "leech";
 
+  /*
+   * `modus=quaelen` ist der breitere Bruder von leech.
+   *
+   * Leech greift erst ab LEECH_FEHLER (8) und friert die Karte ein – das ist
+   * die Ausnahme fuer das Schlimmste. Quaelen fragt nach ALLEN Karten, die
+   * gerade mindestens einen Fehler ueber Treffer stehen (fehler >= 1), also
+   * allem, was noch im Minus ist. Die Reihenfolge ist absichtlich die
+   * Fehlerspalte absteigend und nicht das Modell: in dieser Runde geht es
+   * nicht um eine sinnvolle Lernfolge, sondern darum, den Kraemmel zuerst
+   * zu trocknen.
+   *
+   * Kein neuer Zaehler, keine Migration: `fehler` steht seit 016 in
+   * karten_fortschritt, wird bei „nochmal" hoch- und bei „gut"/„einfach"
+   * runtergezaehlt. Genau das ist die Quäl-Liste.
+   */
+  const quaelModus = suche.get("modus") === "quaelen";
+
   const heute = new Date().toISOString().slice(0, 10);
 
   /*
@@ -364,6 +381,13 @@ export async function GET(request: Request) {
        * Rotation genommen und nur noch über den Modus "leech" geübt.
        */
       leech: fehler >= LEECH_FEHLER,
+      /*
+       * Der Fehlersaldo der Karte. Die Route schickt ihn mit, weil die
+       * Quäl-Wörter-Runde (modus=quaelen) danach filtert und sortiert – und
+       * weil die Set-Seite daraus den Knopf "Quäl-Wörter (N)" baut. Ohne
+       * das Feld muesste jede Oberfläche selbst in karten_fortschritt fragen.
+       */
+      fehler,
       ...(schwierigkeitWert !== null ? { schwierigkeit: schwierigkeitWert } : {}),
     };
   });
@@ -410,16 +434,35 @@ export async function GET(request: Request) {
   const istLeech = (karte: (typeof sortiert)[number]) => karte.leech;
 
   /*
+   * Ein Quäl-Wort steht im Minus: mehr „nochmal" als „richtig" in der
+   * Bilanz der Fehlerspalte. 1 ist die Schwelle, nicht 0 – eine Karte, die
+   * einmal falsch und danach sicher war, hat ihren Fehler abbezahlt und
+   * gehoert nicht mehr in diese Liste. Sonst waere das Set nach dem ersten
+   * Durchgang eine Quäl-Wörterrunde, und der Wert der Liste waere null.
+   */
+  const istQuaelWort = (karte: (typeof sortiert)[number]) => karte.fehler >= 1;
+
+  /*
    * Leech (Plan 1.7): In der normalen Rotation sind Problemskarten
    * ausgeschlossen – sie haben genug Fehler und sollen die Runde nicht mehr
    * blockieren. Im Uebungsmodus zaehlen sie mit (die Runde ist ohnehin eine
    * bewusste Wiederholung), und der Leech-Modus liefert nur sie aus.
    */
-  const genutzt = leechModus
-    ? sortiert.filter(istLeech).slice(0, MAX_WIEDERHOLUNG)
-    : ueben
-      ? sortiert.slice(0, MAX_WIEDERHOLUNG)
-      : sortiert.filter((karte) => karte.faelligAm <= heute && !istLeech(karte)).slice(0, MAX_KARTEN);
+  /*
+   * Quaelen steht vor allen anderen Modi, weil es der schmalste Stapel ist
+   * und die Faelligkeit in ihm keine Rolle spielt – eine Karte, die erst
+   * morgen faellig waere, kann trotzdem ein Quäl-Wort sein. Die zweite
+   * Sortierung nach `fehler` absteignend nimmt den Rest von `sortiert` mit:
+   * bei gleicher Fehlerzahl bleibt die Modell-Reihenfolge stehen, weil
+   * Array.prototype.sort stabil ist.
+   */
+  const genutzt = quaelModus
+    ? sortiert.filter(istQuaelWort).sort((a, b) => b.fehler - a.fehler).slice(0, MAX_WIEDERHOLUNG)
+    : leechModus
+      ? sortiert.filter(istLeech).slice(0, MAX_WIEDERHOLUNG)
+      : ueben
+        ? sortiert.slice(0, MAX_WIEDERHOLUNG)
+        : sortiert.filter((karte) => karte.faelligAm <= heute && !istLeech(karte)).slice(0, MAX_KARTEN);
 
   /*
    * Plan 3.10 – die Texte der servierten Karten.
@@ -485,11 +528,13 @@ export async function GET(request: Request) {
      * Obergrenze von 40, damit "12 von 40 geschafft" dasselbe meint wie
      * vorher, nur eben in einem anderen Umfang.
      */
-    faelligGesamt: leechModus
-      ? Math.min(sortiert.filter(istLeech).length, MAX_WIEDERHOLUNG)
-      : ueben
-        ? Math.min(sortiert.length, MAX_WIEDERHOLUNG)
-        : sortiert.filter((karte) => karte.faelligAm <= heute && !istLeech(karte)).length,
+    faelligGesamt: quaelModus
+      ? Math.min(sortiert.filter(istQuaelWort).length, MAX_WIEDERHOLUNG)
+      : leechModus
+        ? Math.min(sortiert.filter(istLeech).length, MAX_WIEDERHOLUNG)
+        : ueben
+          ? Math.min(sortiert.length, MAX_WIEDERHOLUNG)
+          : sortiert.filter((karte) => karte.faelligAm <= heute && !istLeech(karte)).length,
     /*
      * Bestand statt Fälligkeit: die Lernseite braucht "hat das Set überhaupt
      * Karten", um "nichts fällig" von "noch nichts angelegt" zu
@@ -503,6 +548,15 @@ export async function GET(request: Request) {
      */
     leechAnzahl: sortiert.filter(istLeech).length,
     /*
+     * Wie viele Karten des Sets gerade Quäl-Wörter sind. Die Zahl kommt in
+     * JEDER Antwort, nicht nur im Quäl-Modus – sonst könnte die Set-Seite
+     * den Knopf „Quäl-Wörter (N)" nur zeigen, wenn man ohnehin schon in
+     * einer Quäl-Runde ist. Die Normalisierung auf MAX_WIEDERHOLUNG ist
+     * dieselbe wie bei `faelligGesamt`: die Runde hat höchstens 40 Karten,
+     * und „12 von 40" muss dasselbe meinen wie in den anderen Modi.
+     */
+    quaelAnzahl: Math.min(sortiert.filter(istQuaelWort).length, MAX_WIEDERHOLUNG),
+    /*
      * Der Client braucht das, um den Endschirm ehrlich zu halten: ohne diesen
      * Hinweis wuerde er bei "7 von 40" nach einer Runde von 7 behaupten, es
      * sei nichts mehr da, obwohl 33 im Set liegen.
@@ -513,6 +567,13 @@ export async function GET(request: Request) {
      * bewusste Reparaturrunde, und der Endschirm benennt das auch so.
      */
     ...(leechModus ? { leechModus: true } : {}),
+    /*
+     * Modus-Flag für den Client, dasselbe Spiel wie bei leechModus: die
+     * Runde benennt sich selbst, statt dass der Client aus seiner Adresse
+     * schließt, was serviert wurde. Bei einem leeren Set wäre beides
+     * auseinandergefallen.
+     */
+    ...(quaelModus ? { quaelModus: true } : {}),
     /*
      * Nur gesetzt, wenn es wirklich zu viel ist. Die Oberflaeze kann das
      * anzeigen; wenn sie es nicht tut, ist die Antwort wenigstens ehrlich.

@@ -151,6 +151,14 @@ export default function VokabelnSeite({ setSlug }: { setSlug: string }) {
   const gelerntAnzahl = alle.filter((k) => k.gelernt).length;
 
   /*
+   * Quäl-Wörter: Karten, die gerade mindestens einen Fehler über Treffer
+   * stehen. Dieselbe Schwelle wie in GET /api/lernen (modus=quaelen) – hier
+   * nur vorgerechnet, damit der Knopf mit der Zahl werben kann. Ein Zähler
+   * ohne Zahl ist ein Hinweis, mit Zahl ist er eine Einladung.
+   */
+  const quaelAnzahl = alle.filter((k) => k.fehler >= 1).length;
+
+  /*
    * Speichert den Bearbeitungsstand in die bereits geladene Liste.
    *
    * Bewusst KEIN neues Laden der ganzen Liste: bei 500 Karten waere das fuer
@@ -396,6 +404,23 @@ export default function VokabelnSeite({ setSlug }: { setSlug: string }) {
         <button type="button" className={styles.knopf} onClick={() => router.push(`/lernen/${setSlug}`)}>
           Set lernen
         </button>
+        {/*
+         * Der Einstieg in die Quäl-Runde. Er steht hier und nicht auf der
+         * Lernseite, weil diese Liste die einzige Stelle ist, an der die
+         * Zahl ohnehin da ist – sie zeigt ja schon `fehler` je Karte. Und
+         * weil genau hier jemand steht, der sein Set ansieht: Wer „die
+         * hässlichen Wörter will", findet sie am ehesten neben dem
+         * Lernknopf.
+         */}
+        {quaelAnzahl > 0 && (
+          <button
+            type="button"
+            className={styles.knopfLeise}
+            onClick={() => router.push(`/lernen/${setSlug}?modus=quaelen`)}
+          >
+            Quäl-Wörter ({quaelAnzahl})
+          </button>
+        )}
       </div>
     </div>
   );

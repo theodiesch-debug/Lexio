@@ -376,3 +376,29 @@
     transform: translateY(-2px);
     filter: brightness(1.05);
 }
+
+/*
+ * Zweite Stufe neben `.knopf`: dieselbe Form (Pille, min-height 46px für
+ * den Touch-Bereich), aber nur mit Rahmen. Die Quäl-Wörter-Schaltfläche
+ * neben „Set lernen" darf nicht um denselben Goldakzept buhlen wie der
+ * Hauptweg – sonst sieht man zwei Hauptknöpfe und wählt per Zufall.
+ */
+.knopfLeise {
+    min-height: 46px;
+    padding: 0.7rem 1.4rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 150ms ease, color 150ms ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.knopfLeise:hover {
+    background: var(--bg-elevated-2);
+    color: var(--text-primary);
+}

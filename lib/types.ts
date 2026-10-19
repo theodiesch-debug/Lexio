@@ -61,6 +61,14 @@ export type LernKarte = {
   faelligAm: string;
   /** Probleme mit der Fehlerschwelle – in der normalen Runde ausgeblendet. */
   leech: boolean;
+  /**
+   * Wie oft die Karte in diesem Set als „nochmal" gewertet wurde, ohne
+   * dazwischen sicher gewesen zu sein. 0 heisst „steht nicht im Minus".
+   *
+   * Optional, weil die Route den Wert nur mitliefert, seit es den
+   * Quäl-Wörter-Modus gibt; eine alte Antwort ohne das Feld bleibt gueltig.
+   */
+  fehler?: number;
   schwierigkeit?: number;
 };
 
@@ -89,6 +97,18 @@ export type LernAntwort = {
   uebungsmodus?: boolean;
   leechAnzahl?: number;
   leechModus?: boolean;
+  /**
+   * Wie viele Karten des Sets gerade als Quäl-Wörter gelten – also eine
+   * Fehlerschwelle von mindestens einem Fehler haben (inklusive der
+   * Problemskarten, die ja die schlimmsten Quäl-Wörter sind).
+   *
+   * Die Zahl steht in jeder Antwort, damit die Oberfläche den Knopf
+   * „Quäl-Wörter üben" auch dann zeigen kann, wenn gerade eine normale
+   * Runde läuft.
+   */
+  quaelAnzahl?: number;
+  /** `modus=quaelen`: diese Runde besteht nur aus Quäl-Wörtern. */
+  quaelModus?: boolean;
 };
 
 export type WochenXpTyp = {

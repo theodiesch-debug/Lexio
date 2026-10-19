@@ -14,7 +14,7 @@ import { spreche, stimmen, stoppe, tonVerfuegbar } from "@/lib/sprachausgabe";
 import { LAUTSTÄRKE_VOLUMEN, liesTon, TON_SPEICHER } from "@/lib/ton";
 import { beobachteZeichen, liesZeichenAn, zeichenVorgabe } from "@/lib/kartenzeichen-ein";
 import Kartenzeichen from "@/components/kartenzeichen";
-import { IconLeererStapel, IconSterne, IconTasse, IconZielfahne } from "@/components/icone";
+import { IconFlamme, IconLeererStapel, IconSterne, IconTasse, IconZielfahne } from "@/components/icone";
 import styles from "./lernen.module.css";
 
 /**
@@ -47,6 +47,7 @@ export default function LernenSeite({
     setSlug,
     ueben = false,
     leech = false,
+    quael = false,
     rundeNr = 0,
 }: {
     setSlug: string;
@@ -63,6 +64,13 @@ export default function LernenSeite({
      * normalen Ansicht.
      */
     leech?: boolean;
+    /**
+     * Aus `?modus=quaelen`. Die Runde zeigt alle Karten, die gerade im
+     * Minus stehen (fehler >= 1), die schlimmsten zuerst – der Unterschied
+     * zu `leech`, das erst ab LEECH_FEHLER greift und die Karten dafür
+     * einfriert.
+     */
+    quael?: boolean;
     /**
      * Zaehler der Wiederholungsrunden aus `?runde=`. Er gehoert in die
      * Abhaengigkeit des Ladeeffekts, damit "Weitere Runde" die Karten
@@ -102,6 +110,15 @@ export default function LernenSeite({
      */
     const [leechModus, setLeechModus] = useState(false);
     const [leechAnzahl, setLeechAnzahl] = useState(0);
+
+    /**
+     * Quäl-Wörter. `quaelModus` sagt, was die Route tatsächlich serviert hat,
+     * `quaelAnzahl`, wie viele Karten des Sets gerade im Minus stehen – auch
+     * dann, wenn gerade eine andere Runde läuft, denn der Knopf dazu steht
+     * auf dem Endschirm und im leeren Stapel.
+     */
+    const [quaelModus, setQuaelModus] = useState(false);
+    const [quaelAnzahl, setQuaelAnzahl] = useState(0);
 
     /**
      * Plan 1.8 – „zweimal schwer". Merkt sich, wie oft eine Karte in DIESER
@@ -254,7 +271,23 @@ export default function LernenSeite({
                 // aufhalten.
                 const [daten, profil] = await Promise.all([
                     holeJson<LernAntwort | null>(
-                        `/api/lernen?set=${encodeURIComponent(setSlug)}${ueben ? "&modus=ueben" : ""}${leech ? "&modus=leech" : ""}`,
+                        /*
+                         * Ein Modus, kein Knoten aus drei Ternaroperatoren.
+                         * Vorher stand hier `${ueben ? "&modus=ueben" : ""}${leech
+                         * ? "&modus=leech" : ""}` – zwei unabhängige Bedingungen,
+                         * die zusammen eine Adresse bauen, die es nie geben
+                         * dürfte. Jetzt entscheidet einer: was der Nutzer
+                         * angefragt hat, steht genau einmal drin.
+                         */
+                        `/api/lernen?set=${encodeURIComponent(setSlug)}${
+                            quael
+                                ? "&modus=quaelen"
+                                : leech
+                                  ? "&modus=leech"
+                                  : ueben
+                                    ? "&modus=ueben"
+                                    : ""
+                        }`,
                         null,
                     ),
                     // Fehlgeschlagenes /api/profil ist in der Regel kein
@@ -283,6 +316,8 @@ export default function LernenSeite({
                 setUebungsmodus(daten.uebungsmodus === true);
                 setLeechAnzahl(daten.leechAnzahl ?? 0);
                 setLeechModus(daten.leechModus === true);
+                setQuaelAnzahl(daten.quaelAnzahl ?? 0);
+                setQuaelModus(daten.quaelModus === true);
                 setIndex(0);
                 setAufgedeckt(false);
                 setLetzteAntwort(null);
@@ -315,7 +350,7 @@ export default function LernenSeite({
         return () => {
             abgebrochen = true;
         };
-    }, [setSlug, runde, ueben, leech, rundeNr]);
+    }, [setSlug, runde, ueben, leech, quael, rundeNr]);
 
     const karte = karten[index];
     const fertig = !laden && !fehler && karten.length > 0 && index >= karten.length;
@@ -691,6 +726,53 @@ if (karten.length === 0) {
          * faellig. "Nochmal lernen" holt dieselben Karten als Wiederholung.
          */
         if (kartenGesamt > 0) {
+            /*
+             * Die Runde ist leer, weil sie eine Quäl-Runde war und gerade
+             * keine Karte im Minus steht. "Alles gelernt" wäre hier eine
+             * Behauptung über den Lernstand, die ich nicht belegen kann –
+             * gestern können fünf Quäl-Wörter dagewesen sein. Es heißt
+             * deshalb, was hier los ist, und der Weg führt zurück in den
+             * normalen Stapel.
+             */
+            if (quaelModus) {
+                return (
+                    <div className={styles.seite}>
+                        <div className={styles.ende}>
+                            <span className={styles.endeZeichen} aria-hidden="true">
+                                <IconFlamme />
+                            </span>
+                            <h2 className={styles.endeTitel}>Keine Quäl-Wörter</h2>
+                            <p className={styles.endeText}>
+                                In {set?.name} steht gerade keine Karte im Minus. Das ist der
+                                Zustand, auf den es ankommt – der normale Stapel weiß, was als
+                                Nächstes dran ist.
+                            </p>
+                            <button
+                                type="button"
+                                className={styles.knopf}
+                                onClick={() => router.push(`/lernen/${setSlug}`)}
+                            >
+                                Normal lernen
+                            </button>
+                            <button
+                                type="button"
+                                className={styles.knopfLeise}
+                                onClick={() => router.push(`/wortschatz/${setSlug}`)}
+                            >
+                                Alle Vokabeln ansehen
+                            </button>
+                            <button
+                                type="button"
+                                className={styles.knopfLeise}
+                                onClick={() => router.push("/")}
+                            >
+                                Zur Übersicht
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
             return (
                 <div className={styles.seite}>
                     <div className={styles.ende}>
@@ -743,6 +825,22 @@ if (karten.length === 0) {
                                 onClick={() => router.push(`/lernen/${setSlug}?modus=leech`)}
                             >
                                 Problemskarten üben
+                            </button>
+                        )}
+                        {/*
+                         * Dasselbe Argument wie bei den Problemskarten, nur
+                         * für den breiteren Fall: der Stapel ist leer, aber
+                         * im Set stehen Karten im Minus. Der Knopf kostet
+                         * nichts, wenn die Zahl 0 ist – er wird dann gar
+                         * nicht gerendert.
+                         */}
+                        {quaelAnzahl > 0 && (
+                            <button
+                                type="button"
+                                className={styles.knopfLeise}
+                                onClick={() => router.push(`/lernen/${setSlug}?modus=quaelen`)}
+                            >
+                                Quäl-Wörter üben ({quaelAnzahl})
                             </button>
                         )}
                         <button
@@ -819,11 +917,13 @@ if (karten.length === 0) {
                     <h2 className={styles.endeTitel}>
                         {uebrig > 0
                             ? "Runde geschafft"
-                            : uebungsmodus
-                              ? "Wiederholt"
-                              : leechModus
-                                ? "Probleme geübt"
-                                : "Alles geschafft"}
+                            : quaelModus
+                              ? "Quäl-Wörter geübt"
+                              : uebungsmodus
+                                ? "Wiederholt"
+                                : leechModus
+                                  ? "Probleme geübt"
+                                  : "Alles geschafft"}
                     </h2>
                     <p className={styles.endeText}>
                         {uebrig > 0 ? (
@@ -832,15 +932,23 @@ if (karten.length === 0) {
                                 {uebrig === 1 ? "bleibt" : "bleiben"} noch.
                                 {leechModus
                                     ? " Der Rest folgt im nächsten Problemschub."
-                                    : uebungsmodus
-                                      ? " Der Rest folgt beim nächsten Mal."
-                                      : " Morgen geht es weiter."}
+                                    : quaelModus
+                                      ? " Der Rest folgt im nächsten Quäl-Schub."
+                                      : uebungsmodus
+                                        ? " Der Rest folgt beim nächsten Mal."
+                                        : " Morgen geht es weiter."}
                             </>
                         ) : leechModus ? (
                             <>
                                 {karten.length} {karten.length === 1 ? "Problemskarte" : "Problemskarten"}{" "}
                                 aus {set?.name} durchgehalten. Morgen rücken sie wieder mit dem normalen
                                 Stapel an – die Schwelle zählt weiter.
+                            </>
+                        ) : quaelModus ? (
+                            <>
+                                {karten.length} {karten.length === 1 ? "Quäl-Wort" : "Quäl-Wörter"} aus{" "}
+                                {set?.name} durchgegangen. Jede richtige Antwort zahlt auf dem
+                                Saldo ein; was sicher ist, rauscht aus der Liste.
                             </>
                         ) : uebungsmodus ? (
                             <>
@@ -878,17 +986,17 @@ if (karten.length === 0) {
                      * `neuStarten` laedt dieselben 40 Karten noch einmal, was
                      * sich anfuehlt wie ein Fehler.
                      */}
-                    {/* Leech-Runden haben dieselbe Kartenbegrenzung wie Übungsrunden:
-                     also auch hier eine echte neue Runde statt neuStarten. */}
-                    {uebungsmodus || leechModus ? (
+                    {/* Leech- und Quäl-Runden haben dieselbe Kartenbegrenzung wie
+                     Übungsrunden: also auch hier eine echte neue Runde statt neuStarten. */}
+                    {uebungsmodus || leechModus || quaelModus ? (
                         <button
                             type="button"
                             className={styles.knopf}
                             onClick={() =>
                                 router.push(
-                                    `/lernen/${setSlug}?modus=${uebungsmodus ? "ueben" : "leech"}&runde=${
-                                        rundeNr + 1
-                                    }`,
+                                    `/lernen/${setSlug}?modus=${
+                                        quaelModus ? "quaelen" : leechModus ? "leech" : "ueben"
+                                    }&runde=${rundeNr + 1}`,
                                 )
                             }
                         >
@@ -922,6 +1030,33 @@ if (karten.length === 0) {
                             onClick={() => router.push(`/lernen/${setSlug}?modus=leech`)}
                         >
                             Problemskarten üben
+                        </button>
+                    )}
+                    {/*
+                     * Dasselbe Argument in der anderen Richtung: nach einer
+                     * normalen Runde können Karten im Minus stehen, ohne
+                     * die Problemschwelle zu erreichen – genau die holt
+                     * "Quäl-Wörter". Und aus einer Quäl-Runde heraus führt
+                     * der Weg in die andere Richtung zurück in den
+                     * normalen Stapel, sonst stünde man in einer Sackgasse
+                     * aus Kraemmel-Üben.
+                     */}
+                    {quaelAnzahl > 0 && !quaelModus && (
+                        <button
+                            type="button"
+                            className={styles.knopfLeise}
+                            onClick={() => router.push(`/lernen/${setSlug}?modus=quaelen`)}
+                        >
+                            Quäl-Wörter üben ({quaelAnzahl})
+                        </button>
+                    )}
+                    {quaelModus && (
+                        <button
+                            type="button"
+                            className={styles.knopfLeise}
+                            onClick={() => router.push(`/lernen/${setSlug}`)}
+                        >
+                            Normaler Stapel
                         </button>
                     )}
                     <button type="button" className={styles.knopfLeise} onClick={() => router.push("/")}>
@@ -1146,11 +1281,23 @@ if (karten.length === 0) {
                                         )}
                                         <span className={styles.karteTipp}>Tippen zum Aufdecken</span>
 
-                                        {karte.leech && (
+                                        {/*
+                                         * Warum diese Karte hier ist. Ohne
+                                         * das Label sähe eine Quäl-Runde
+                 * aus wie eine zufällige Wiederholung – und der
+                                         * Unterschied zu "Problemskarte"
+                 * (Schwelle erreicht, eingefroren) ist genau der Grund,
+                                         * warum es beide Modi gibt.
+                                         */}
+                                        {karte.leech ? (
                                             <span className={styles.karteProblemskarte}>
                                                 Problemskarte
                                             </span>
-                                        )}
+                                        ) : quaelModus ? (
+                                            <span className={styles.karteProblemskarte}>
+                                                Quäl-Wort
+                                            </span>
+                                        ) : null}
 
                                         {karte.stufe > 0 && (
                                             <span

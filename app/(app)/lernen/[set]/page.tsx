@@ -28,6 +28,15 @@ export default async function Seite(props: {
     const leech = modus === "leech";
 
     /*
+     * `?modus=quaelen` holt die Quäl-Wörter: alle Karten, die gerade
+     * mindestens einen Fehler ueber Treffer stehen, die schlimmsten zuerst.
+     * Die Schwelle liegt bei 1 und nicht bei LEECH_FEHLER – Leech ist die
+     * Ausnahme fuer das Schlimmste, Quaelen der ganze Kraemmel. Die
+     * Begrenzung auf 40 Karten uebernimmt die Route wie bei ueben/leech.
+     */
+    const quael = modus === "quaelen";
+
+    /*
      * `runde` zaehlt die Durchlaeufe im Uebungsmodus.
      *
      * Wofuer: "Weitere Runde" soll dieselben Karten noch einmal bringen. Ohne
@@ -41,5 +50,5 @@ export default async function Seite(props: {
      */
     const rundeNr = Number(runde) || 0;
 
-    return <LernenSeite setSlug={set} ueben={ueben} leech={leech} rundeNr={rundeNr} />;
+    return <LernenSeite setSlug={set} ueben={ueben} leech={leech} quael={quael} rundeNr={rundeNr} />;
 }
