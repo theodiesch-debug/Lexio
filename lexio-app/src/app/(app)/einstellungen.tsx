@@ -14,10 +14,9 @@
  * Schalter, der nichts speichert, ist schlimmer als keiner – er verspricht
  * etwas und haelt es nicht.
  *
- * Es bleibt: Design, Erinnerung, ein Hinweis zu den Toenen, Passwort
- * aendern, Abmelden und die Versionszeile. Der Konto-Bereich funktioniert
- * ueber supabase.auth wie im Web, ohne das alte Passwort: die Sitzung
- * beweist schon, wer hier ist.
+ * Es bleibt: Design, Erinnerung, die Toene, Passwort aendern, Abmelden und
+ * die Versionszeile. Der Konto-Bereich funktioniert ueber supabase.auth wie
+ * im Web, ohne das alte Passwort: die Sitzung beweist schon, wer hier ist.
  */
 
 import { useEffect, useState, type ReactNode } from "react";
@@ -40,6 +39,7 @@ import {
     type Erinnerung,
 } from "@/lib/benachrichtigungen";
 import { supabase } from "@/lib/supabase";
+import { TON_STANDARD, tonLesen, tonSpeichern, type TonStand } from "@/lib/ton";
 import { MIN_PASSWORT, PASSWORT_FEHLER } from "@lexio/passwort";
 
 type Meldung = { art: "ok" | "fehler"; text: string } | null;
@@ -79,6 +79,8 @@ export default function Einstellungen() {
     const [erinnerungLaeuft, setErinnerungLaeuft] = useState(false);
     const [erinnerungMeldung, setErinnerungMeldung] = useState<Meldung>(null);
 
+    const [ton, setTon] = useState<TonStand>(TON_STANDARD);
+
     // Wie das Design steht die Erinnerung im AsyncStorage, nicht in React –
     // sonst zeigen wir beim ersten Mal „Aus", obwohl Android noch meldet.
     useEffect(() => {
@@ -90,6 +92,23 @@ export default function Einstellungen() {
             laeuft = false;
         };
     }, []);
+
+    // Wie die Erinnerung stehen die Toene im AsyncStorage, nicht in React –
+    // sonst zeigen wir beim ersten Mal „Aus", obwohl die Karte noch spricht.
+    useEffect(() => {
+        let laeuft = true;
+        void tonLesen().then((wert) => {
+            if (laeuft) setTon(wert);
+        });
+        return () => {
+            laeuft = false;
+        };
+    }, []);
+
+    async function tonAendern(neu: TonStand) {
+        setTon(neu);
+        await tonSpeichern(neu);
+    }
 
     const zeitText = `${String(erinnerung.stunde).padStart(2, "0")}:${String(
         erinnerung.minute,
@@ -363,17 +382,37 @@ export default function Einstellungen() {
             </Abschnitt>
 
             <Abschnitt titel="Töne">
-                {/*
-                 * Kein Schalter: das Vorlesen ist eine Geraete-Einstellung und
-                 * wird im Lernmodus ausgeloest. Eine App-eigene Ton-Vorliebe
-                 * existiert noch nicht – also steht hier der ehrliche Hinweis
-                 * statt eines Reglers, der nichts speichert.
-                 */}
-                <Text style={[styles.hinweis, { color: farben.textSecondary }]}>
-                    Das Vorlesen der Karten im Lernmodus spricht und ist laut. Ton und
-                    Lautstärke stellst du auf diesem Gerät ein – im Lernmodus über die
-                    Vorlesen-Taste.
+                <Text style={[styles.label, { color: farben.textSecondary }]}>Vorlesen</Text>
+                <AnAusSegment
+                    label="Vorlesen"
+                    wert={ton.an}
+                    onWaehlen={(w) => void tonAendern({ ...ton, an: w })}
+                />
+                <Text style={[styles.hinweis, { color: farben.textMuted }]}>
+                    Der Lautsprecher auf der Karte spricht die Antwort, wenn du ihn drückst.
                 </Text>
+
+                {/*
+                 * Der Schalter, auf den die Lernseite hört. Er steht nur,
+                 * wenn überhaupt Töne an sind: ein ausgeschalteter Regler
+                 * würde etwas versprechen, das die Karte nicht hält.
+                 */}
+                {ton.an ? (
+                    <>
+                        <Text style={[styles.label, { color: farben.textSecondary }]}>
+                            Alle Karten vorlesen
+                        </Text>
+                        <AnAusSegment
+                            label="Alle Karten vorlesen"
+                            wert={ton.vorlesenAlle}
+                            onWaehlen={(w) => void tonAendern({ ...ton, vorlesenAlle: w })}
+                        />
+                        <Text style={[styles.hinweis, { color: farben.textMuted }]}>
+                            Die Antwort wird beim Aufdecken automatisch vorgelesen – auch ohne
+                            Lautsprecherdruck. Aus ist die Vorgabe.
+                        </Text>
+                    </>
+                ) : null}
             </Abschnitt>
 
             <Abschnitt titel="Konto">
@@ -470,6 +509,57 @@ function Abschnitt({ titel, children }: { titel: string; children: ReactNode }) 
             <Text style={[styles.abschnittTitel, { color: farben.textPrimary }]}>{titel}</Text>
             {children}
         </Karte>
+    );
+}
+
+/**
+ * An/Aus als Segmentschalter – dieselbe Form wie „Täglich erinnern".
+ *
+ * Die Beschriftungen „An" und „Aus" sind die des Webs (`AN_AUS`); im
+ * Vorlese-Zweig kommt der Schalter zweimal vor, deshalb unterscheidet ihn
+ * das `label` in der Ansage für Screenreader, nicht in der Anzeige.
+ */
+function AnAusSegment({
+    wert,
+    label,
+    onWaehlen,
+}: {
+    wert: boolean;
+    label: string;
+    onWaehlen: (wert: boolean) => void;
+}) {
+    const { farben } = useDesign();
+    return (
+        <View style={[styles.segment, { backgroundColor: farben.bgElevated2, borderColor: farben.line }]}>
+            {AN_AUS.map((option) => {
+                const aktiv = wert === option.wert;
+                return (
+                    <Pressable
+                        key={String(option.wert)}
+                        onPress={() => onWaehlen(option.wert)}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: aktiv }}
+                        accessibilityLabel={`${label} ${option.label}`}
+                        style={[
+                            styles.segmentKnopf,
+                            aktiv ? { backgroundColor: farben.gold } : null,
+                        ]}
+                    >
+                        <Text
+                            style={[
+                                styles.segmentText,
+                                {
+                                    color: aktiv ? farben.ink : farben.textSecondary,
+                                    fontFamily: aktiv ? SANS.semibold : SANS.medium,
+                                },
+                            ]}
+                        >
+                            {option.label}
+                        </Text>
+                    </Pressable>
+                );
+            })}
+        </View>
     );
 }
 

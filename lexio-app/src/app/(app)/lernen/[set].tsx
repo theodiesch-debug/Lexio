@@ -36,11 +36,12 @@ import { Skelett } from "../../../components/zustand";
 import { CAVEAT, MONO, SANS, SERIF } from "../../../design/schrift";
 import { useReduzierteBewegung } from "../../../design/bewegung";
 import { useDesign } from "../../../design/theme";
-import { ABSTAND, KARTEN_TINTE, RADIUS } from "../../../design/tokens";
+import { ABSTAND, KARTEN_TINTE, MASS, RADIUS } from "../../../design/tokens";
 import { ApiFehler, holeJson, sendeJson } from "../../../lib/api";
 import { rundenFortschritt } from "../../../lib/rundenfortschritt";
 import { rotiere } from "../../../lib/rundenrotation";
 import { supabase } from "../../../lib/supabase";
+import { TON_STANDARD, tonLesen, type TonStand } from "../../../lib/ton";
 import { spreche, stoppe } from "../../../lib/vorlesen";
 
 type Bewertung = (typeof BEWERTUNGEN)[number]["id"];
@@ -130,6 +131,13 @@ export default function Lernen() {
   const [aufgedeckt, setAufgedeckt] = useState(false);
   const [bewertend, setBewertend] = useState(false);
   const [meldung, setMeldung] = useState<string | null>(null);
+  /*
+   * Töne aus den Einstellungen. Der Startwert ist die Vorgabe (an, aber
+   * nicht automatisch), damit die Karte sofort bedienbar ist; der
+   * gespeicherte Stand kommt einen Tick später nach. Das ist derselbe
+   * Kompromiss wie beim Design – kurze Zeit die Vorgabe, dann die Wahl.
+   */
+  const [tonStand, setTonStand] = useState<TonStand>(TON_STANDARD);
 
   const [xp, setXp] = useState(0);
   const [streak, setStreak] = useState<number | null>(null);
@@ -138,6 +146,21 @@ export default function Lernen() {
     xp: number;
   } | null>(null);
   const [pop, setPop] = useState<{ key: number; xp: number } | null>(null);
+
+  /*
+   * Die Tonwahl einmal beim Öffnen lesen. Sie ändert sich während einer
+   * Runde nicht – wer sie umstellt, geht in die Einstellungen und kommt
+   * über den Zurück-Weg wieder hierher, also neu gemountet.
+   */
+  useEffect(() => {
+    let laeuft = true;
+    void tonLesen().then((wert) => {
+      if (laeuft) setTonStand(wert);
+    });
+    return () => {
+      laeuft = false;
+    };
+  }, []);
 
   const urlRunde = useCallback(() => {
     const pruef = [encodeURIComponent(slug)];
@@ -187,6 +210,21 @@ export default function Lernen() {
   useEffect(() => () => stoppe(), []);
 
   const karte = stapel[index];
+
+  /*
+   * Aufdecken: die eine Stelle, an der die Karte ihre Rückseite zeigt.
+   *
+   * Bis hierher sprach das Aufdecken die Antwort immer – auch für alle, die
+   * nur den Lautsprecher auf der Karte benutzen wollten. Jetzt spricht es
+   * nur, wenn „Alle Karten vorlesen" in den Einstellungen steht (Vorgabe
+   * aus). Der Lautsprecher auf der Karte bleibt der Weg für alle anderen.
+   */
+  const aufdecken = useCallback(() => {
+    setAufgedeckt(true);
+    if (tonStand.vorlesenAlle) {
+      spreche([karte?.antwort ?? "", karte?.beispielsatz], antwort?.set.sprache.code ?? null);
+    }
+  }, [karte, antwort, tonStand.vorlesenAlle]);
   const fortschritt = rundenFortschritt(antwort?.karten.length ?? 0, stapel.length);
   /*
    * Der Balken zeigt die erledigten Karten. `position` ist 1-basiert (erste
@@ -405,8 +443,7 @@ export default function Lernen() {
           style={styles.karte}
           onPress={() => {
             if (aufgedeckt) return;
-            setAufgedeckt(true);
-            spreche([karte.antwort, karte.beispielsatz], antwort?.set.sprache.code ?? null);
+            aufdecken();
           }}
         >
           <Lernkarte
@@ -415,9 +452,11 @@ export default function Lernen() {
             flaeche={flaeche}
             akzent={akzent}
             set={antwort}
-            onVorlesen={() =>
-              spreche([karte.antwort, karte.beispielsatz], antwort?.set.sprache.code ?? null)
-            }
+            onVorlesen={() => {
+              // Wie im Web: der Lautsprecher gehorcht dem Schalter "Töne".
+              if (!tonStand.an) return;
+              spreche([karte.antwort, karte.beispielsatz], antwort?.set.sprache.code ?? null);
+            }}
           />
         </Pressable>
         {aufgedeckt ? (
@@ -443,7 +482,7 @@ export default function Lernen() {
         <Text style={[styles.meldung, { color: farben.terracotta }]}>{meldung}</Text>
       ) : null}
 
-      {/* Fuß: Rückgängig + vier Bewertungen */}
+      {/* Fuß: Aufdecken (solange verdeckt), Rückgängig + vier Bewertungen */}
       <View style={styles.fuss}>
         {letzteAntwort ? (
           <Pressable
@@ -460,36 +499,53 @@ export default function Lernen() {
           <View style={styles.rueckgaengigPlatz} />
         )}
 
-        <View style={styles.bewertungen}>
-          {BEWERTUNGEN.map((bewertung) => {
-            const aktiv = aufgedeckt && !bewertend;
-            const farbe = bewertungsFarbe(bewertung.id, hell);
-            return (
-              <Pressable
-                key={bewertung.id}
-                accessibilityRole="button"
-                accessibilityLabel={`${bewertung.label}, plus ${bewertung.xp} XP`}
-                style={[
-                  styles.bewertung,
-                  {
-                    backgroundColor: farbe.hintergrund,
-                    borderColor: aktiv ? farbe.rand : "transparent",
-                    opacity: aktiv ? 1 : 0.55,
-                  },
-                ]}
-                disabled={!aktiv}
-                onPress={() => bewerten(karte.id, bewertung.id)}
-              >
-                <Text style={[styles.bewertungLabel, { color: farbe.text }]}>
-                  {bewertung.label}
-                </Text>
-                <Text style={[styles.bewertungMeta, { color: farbe.text }]}>
-                  +{bewertung.xp} XP
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        {/*
+         * Solange verdeckt ist, steht hier der Knopf aus dem Web und nicht
+         * die vier Bewertungen. Der Grund ist Platz, nicht Geschmack: der
+         * Fuß ist die letzte Zeile auf einem Screen ohne Scrollen, und die
+         * Bewertungen sind vor dem Aufdecken ohnehin gesperrt (das Web zeigt
+         * sie blass). So wächst der Fuß nicht, und der nächste Schritt ist
+         * ein Knopf statt eines grauen Feldes.
+         */}
+        {!aufgedeckt ? (
+          <Knopf
+            titel="Antwort aufdecken"
+            hoehe={MASS.aufdecken}
+            onPress={aufdecken}
+            style={styles.aufdecken}
+          />
+        ) : (
+          <View style={styles.bewertungen}>
+            {BEWERTUNGEN.map((bewertung) => {
+              const aktiv = aufgedeckt && !bewertend;
+              const farbe = bewertungsFarbe(bewertung.id, hell);
+              return (
+                <Pressable
+                  key={bewertung.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${bewertung.label}, plus ${bewertung.xp} XP`}
+                  style={[
+                    styles.bewertung,
+                    {
+                      backgroundColor: farbe.hintergrund,
+                      borderColor: aktiv ? farbe.rand : "transparent",
+                      opacity: aktiv ? 1 : 0.55,
+                    },
+                  ]}
+                  disabled={!aktiv}
+                  onPress={() => bewerten(karte.id, bewertung.id)}
+                >
+                  <Text style={[styles.bewertungLabel, { color: farbe.text }]}>
+                    {bewertung.label}
+                  </Text>
+                  <Text style={[styles.bewertungMeta, { color: farbe.text }]}>
+                    +{bewertung.xp} XP
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
       </View>
     </View>
   );
@@ -912,6 +968,8 @@ const styles = StyleSheet.create({
   xpPopText: { fontFamily: MONO.bold, fontSize: 38 },
 
   fuss: { paddingHorizontal: ABSTAND.lg, paddingBottom: ABSTAND.md, gap: ABSTAND.sm },
+  /* Dieselbe Breite wie die Karte (460 im Web) und mittig. */
+  aufdecken: { alignSelf: "center", width: "100%", maxWidth: 460 },
   rueckgaengig: { alignItems: "center", paddingVertical: 2 },
   rueckgaengigPlatz: { height: 22 },
   rueckgaengigText: {
