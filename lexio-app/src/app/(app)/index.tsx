@@ -15,6 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { xpFormatieren } from "@lexio/profil";
 
 import { Dialog } from "../../components/dialog";
+import { Karte } from "../../components/karte";
 import { SetKachel, type KachelSet } from "../../components/kachel";
 import { Knopf } from "../../components/knopf";
 import { Leerzustand, Melde, Skelett } from "../../components/zustand";
@@ -99,6 +100,16 @@ export default function Uebersicht() {
 
     const faelligGesamt = sets.reduce((sum, s) => sum + (s.kartenFaellig || 0), 0);
 
+    /*
+     * Der Quäl-Einstieg erscheint nur, wenn es überhaupt Quäl-Wörter gibt.
+     * Führen soll das Set mit den meisten: dort gibt es am meisten zu holen.
+     * Dieselbe Regel wie im Web (components/uebersicht/uebersicht.tsx).
+     */
+    const quaelGesamt = sets.reduce((sum, s) => sum + (s.quaelAnzahl ?? 0), 0);
+    const quaelSet = [...sets]
+        .filter((s) => (s.quaelAnzahl ?? 0) > 0)
+        .sort((a, b) => (b.quaelAnzahl ?? 0) - (a.quaelAnzahl ?? 0))[0];
+
     const lernText = faelligGesamt
         ? `Lerne heute ${faelligGesamt} ${faelligGesamt === 1 ? "Wort" : "Wörter"}.`
         : naechstes
@@ -177,6 +188,61 @@ export default function Uebersicht() {
                         />
                     </LinearGradient>
                 </View>
+
+                {quaelSet ? (
+                    <Karte style={[styles.banner, { borderColor: farben.terracotta }]}>
+                        <View style={styles.bannerKopf}>
+                            <FontAwesome6 name="fire" size={18} color={farben.terracotta} />
+                            <Text style={[styles.bannerTitel, { color: farben.textPrimary }]}>
+                                Quäl-Wörter
+                            </Text>
+                        </View>
+                        <Text style={[styles.bannerText, { color: farben.textSecondary }]}>
+                            {quaelGesamt === 1 ? "Ein Wort" : `${quaelGesamt} Wörter`} hast du dir
+                            noch nicht gemerkt. Eine kurze Runde nur mit diesen Wörtern holt sie
+                            zurück.
+                        </Text>
+                        <Knopf
+                            titel="Quäl-Wörter üben"
+                            variante="terrakotta"
+                            onPress={() =>
+                                router.push(
+                                    `/lernen/${encodeURIComponent(quaelSet.id)}?modus=quaelen`,
+                                )
+                            }
+                            style={styles.bannerKnopf}
+                        />
+                    </Karte>
+                ) : null}
+
+                {/*
+                 * Der Wortschatz-Test lag bisher außerhalb der App und war über
+                 * keinen Weg von innen erreichbar. Er steht jetzt dauerhaft hier –
+                 * mit derselben Mechanik wie im Web, nur ohne Anmeldungswerbung
+                 * und mit einem Set aus den Wörtern, die man nicht kannte.
+                 */}
+                <Karte style={styles.banner}>
+                    <View style={styles.bannerKopf}>
+                        <FontAwesome6
+                            name="clipboard-question"
+                            size={18}
+                            color={farben.gold}
+                        />
+                        <Text style={[styles.bannerTitel, { color: farben.textPrimary }]}>
+                            Wortschatz-Test
+                        </Text>
+                    </View>
+                    <Text style={[styles.bannerText, { color: farben.textSecondary }]}>
+                        Wie viele Wörter kennst du schon? In wenigen Minuten schätzt du deinen
+                        Wortschatz – und die Wörter, die du nicht kanntest, werden direkt ein Set.
+                    </Text>
+                    <Knopf
+                        titel="Test starten"
+                        variante="rand"
+                        onPress={() => router.push("/wortschatz-test")}
+                        style={styles.bannerKnopf}
+                    />
+                </Karte>
 
                 <View style={styles.abschnitt}>
                     <View style={styles.abschnittKopf}>
@@ -295,6 +361,11 @@ const styles = StyleSheet.create({
     heroTitel: { fontFamily: SERIF.bold, fontSize: 26 },
     heroText: { fontFamily: SANS.regular, fontSize: 16 },
     heroKnopf: { alignSelf: "flex-start", minWidth: 180, marginTop: 4 },
+    banner: { padding: ABSTAND.lg, gap: ABSTAND.sm },
+    bannerKopf: { flexDirection: "row", alignItems: "center", gap: 10 },
+    bannerTitel: { fontFamily: SERIF.bold, fontSize: 20 },
+    bannerText: { fontFamily: SANS.regular, fontSize: 15, lineHeight: 22 },
+    bannerKnopf: { alignSelf: "flex-start", marginTop: 4, minWidth: 160 },
     abschnitt: { gap: ABSTAND.lg },
     abschnittKopf: {
         flexDirection: "row",

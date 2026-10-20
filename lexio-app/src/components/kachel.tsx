@@ -25,6 +25,8 @@ export type KachelSet = {
     kartenGesamt: number;
     kartenGelernt: number;
     kartenFaellig: number;
+    /** Karten, die gerade im Minus stehen (mehr „nochmal" als richtig). */
+    quaelAnzahl?: number;
     setLevel: number;
     setLevelAnteil: number;
     eigen?: boolean;

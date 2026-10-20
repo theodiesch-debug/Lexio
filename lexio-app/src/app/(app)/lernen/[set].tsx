@@ -110,6 +110,12 @@ export default function Lernen() {
   const slug = typeof set === "string" ? set : "";
   const istUeben = modus === "ueben";
   const istLeech = modus === "leech";
+  /*
+   * `modus=quaelen` ist der breitere Bruder von leech: nicht nur die versteckten
+   * Problemskarten, sondern jedes Wort, das gerade im Minus steht (mehr
+   * „nochmal" als richtig). Der Stapel kommt wie im Web aus derselben Route.
+   */
+  const istQuael = modus === "quaelen";
   const naechsteRunde = (parseInt(String(runde ?? "1"), 10) || 1) + 1;
 
   const [antwort, setAntwort] = useState<LernAntwort | null>(null);
@@ -135,7 +141,9 @@ export default function Lernen() {
 
   const urlRunde = useCallback(() => {
     const pruef = [encodeURIComponent(slug)];
-    if (modus === "ueben" || modus === "leech") pruef.push(`modus=${encodeURIComponent(modus)}`);
+    if (modus === "ueben" || modus === "leech" || modus === "quaelen") {
+      pruef.push(`modus=${encodeURIComponent(modus)}`);
+    }
     if (modus === "ueben" && runde) pruef.push(`runde=${encodeURIComponent(String(runde))}`);
     return `/api/lernen?set=${pruef.join("&")}`;
   }, [slug, modus, runde]);
@@ -300,9 +308,14 @@ export default function Lernen() {
         streak={streak}
         istUeben={istUeben}
         istLeech={istLeech}
+        istQuael={istQuael}
         aufNeueRunde={() => {
           if (istUeben) {
             router.replace(`/lernen/${encodeURIComponent(slug)}?modus=ueben&runde=${naechsteRunde}`);
+          } else if (istQuael) {
+            router.replace(
+              `/lernen/${encodeURIComponent(slug)}?modus=quaelen&runde=${naechsteRunde}`,
+            );
           } else {
             router.replace(`/lernen/${encodeURIComponent(slug)}?modus=ueben`);
           }
@@ -322,9 +335,17 @@ export default function Lernen() {
           <Text style={[styles.ankuendigung, { color: farben.textPrimary }]}>
             {leer0
               ? "Noch keine Vokabeln in diesem Set."
-              : `Nichts fällig in „${antwort?.set.name ?? ""}“.`}
+              : istQuael
+                ? "Gerade kein Quäl-Wort in diesem Set."
+                : `Nichts fällig in „${antwort?.set.name ?? ""}“.`}
           </Text>
-          {!leer0 && (
+          {istQuael ? (
+            <Text style={[styles.endHinweis, { color: farben.textMuted }]}>
+              Quäl-Wörter sind Karten, die du öfter falsch als richtig hattest. Sobald eine
+              dazukommt, steht sie hier.
+            </Text>
+          ) : null}
+          {!leer0 && !istQuael && (
             <Knopf
               titel="Nochmal lernen"
               onPress={() => router.replace(`/lernen/${encodeURIComponent(slug)}?modus=ueben`)}
@@ -405,7 +426,9 @@ export default function Lernen() {
               ? "Übungsrunde"
               : istLeech
                 ? "Reparaturrunde · nur Problemskarten"
-                : karte.leech
+                : istQuael
+                  ? "Quäl-Wörter · nur diese Wörter"
+                  : karte.leech
                   ? "Diese Karte erscheint nicht mehr in der normalen Runde."
                   : `Noch ${antwort?.faelligGesamt ?? stapel.length - 1} ${
                       (antwort?.faelligGesamt ?? 2) === 1 ? "Karte" : "Karten"
@@ -672,6 +695,7 @@ function Endschirm({
   streak,
   istUeben,
   istLeech,
+  istQuael,
   aufNeueRunde,
   aufZurueck,
   aufZuruecknehmen,
@@ -682,6 +706,7 @@ function Endschirm({
   streak: number | null;
   istUeben: boolean;
   istLeech: boolean;
+  istQuael: boolean;
   aufNeueRunde: () => void;
   aufZurueck: () => void;
   aufZuruecknehmen: () => void;
@@ -697,11 +722,13 @@ function Endschirm({
     <View style={[styles.schirm, { backgroundColor: farben.background }]}>
       <ScrollView contentContainerStyle={styles.endschirm}>
         <Text style={[styles.endTitel, { color: farben.textPrimary }]}>
-          {istLeech
-            ? "Reparaturrunde geschafft"
-            : istUeben
-              ? "Übungsrunde geschafft"
-              : "Runde geschafft"}
+          {istQuael
+            ? "Quäl-Wörter geübt"
+            : istLeech
+              ? "Reparaturrunde geschafft"
+              : istUeben
+                ? "Übungsrunde geschafft"
+                : "Runde geschafft"}
         </Text>
         <Text style={[styles.endAktion, { color: farben.textSecondary }]}>
           „{antwort?.set.name ?? ""}“ · {gesamt} {gesamt === 1 ? "Karte" : "Karten"} ·{" "}
@@ -715,7 +742,13 @@ function Endschirm({
         ) : null}
 
         <Knopf
-          titel={istUeben ? "Weitere Runde" : istLeech ? "Nochmal als Übung" : "Nochmal lernen"}
+          titel={
+            istUeben || istQuael
+              ? "Weitere Runde"
+              : istLeech
+                ? "Nochmal als Übung"
+                : "Nochmal lernen"
+          }
           onPress={aufNeueRunde}
           style={styles.endKnopf}
         />

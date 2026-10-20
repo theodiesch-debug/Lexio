@@ -38,6 +38,8 @@ type SetZeile = {
   kartenGesamt: number;
   kartenGelernt: number;
   kartenFaellig: number;
+  /** Karten, die gerade im Minus stehen – für den Quäl-Link je Set. */
+  quaelAnzahl?: number;
   fortschrittProzent: number;
   eigenesSet?: boolean;
   eigen?: boolean;
@@ -262,6 +264,18 @@ function SetKarte({
               <FontAwesome6 name="rotate-right" size={13} color={farben.textSecondary} />
               <Text style={[styles.nebenText, { color: farben.textSecondary }]}>
                 Nochmal lernen
+              </Text>
+            </Pressable>
+          ) : null}
+          {(set.quaelAnzahl ?? 0) > 0 ? (
+            <Pressable
+              onPress={() => router.push(`/lernen/${set.id}?modus=quaelen`)}
+              accessibilityRole="link"
+              style={styles.nebenLink}
+            >
+              <FontAwesome6 name="fire" size={13} color={farben.terracotta} />
+              <Text style={[styles.nebenText, { color: farben.terracotta }]}>
+                Quäl-Wörter üben ({set.quaelAnzahl})
               </Text>
             </Pressable>
           ) : null}

@@ -35,6 +35,14 @@ import path from "node:path";
 const WURZEL = path.resolve(import.meta.dirname, "..");
 const WORTLISTEN = path.join(WURZEL, "scripts", "wortlisten");
 const ZIEL = path.join(WURZEL, "public", "wortschatz-test.json");
+/*
+ * Zweite Ablage fuer die App.
+ *
+ * Die Webseite holt die Liste zur Laufzeit; die App kann das nicht, wenn sie
+ * offline laufen soll – sie buendelt sie als Asset. Zwei Dateien sind eine
+ * Duplikatgefahr, deshalb schreibt dieser Generator beide aus derselben Quelle.
+ */
+const ZIEL_APP = path.join(WURZEL, "lexio-app", "assets", "wortschatz-test.json");
 
 /**
  * Reihenfolge = Häufigkeit, von häufig nach selten. Genau diese Reihenfolge
@@ -109,8 +117,11 @@ const daten = {
 
 fs.mkdirSync(path.dirname(ZIEL), { recursive: true });
 fs.writeFileSync(ZIEL, JSON.stringify(daten));
+fs.mkdirSync(path.dirname(ZIEL_APP), { recursive: true });
+fs.writeFileSync(ZIEL_APP, JSON.stringify(daten));
 
 const bytes = fs.statSync(ZIEL).size;
 console.log(`\nDoppelte Einträge übersprungen: ${doppelt}`);
 console.log(`Wörter gesamt: ${gesamt}`);
 console.log(`Geschrieben: ${path.relative(WURZEL, ZIEL)} (${(bytes / 1024).toFixed(1)} kB)`);
+console.log(`Geschrieben: ${path.relative(WURZEL, ZIEL_APP)} (${(bytes / 1024).toFixed(1)} kB)`);
