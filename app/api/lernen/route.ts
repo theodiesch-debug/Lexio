@@ -3,12 +3,10 @@ import { mitUserOder401 } from "@/lib/supabase/user";
 import { holeSprachen, spracheNachCode } from "@/lib/sprachen-server";
 import { UNBEKANNTE_SPRACHE, type SpracheInfo } from "@/lib/sprachen";
 import { migrationsMeldung } from "@/lib/db-fehler";
-import { LEECH_FEHLER } from "@/lib/lernlogik";
+import { LEECH_FEHLER, MAX_KARTEN, MAX_WIEDERHOLUNG } from "@/lib/lernlogik";
 import { trainiereModell, schwierigkeit } from "@/lib/reihenfolge";
 import { pruefeRohKarten } from "@/lib/fortschritts-form";
 import type { LernKarte } from "@/lib/types";
-
-const MAX_KARTEN = 20;
 
 /**
  * So viele Karten eines Sets werden gelesen – eine Karte mehr, um zu merken,
@@ -28,17 +26,6 @@ const MAX_KARTEN = 20;
  * Wizard schreibt 40 Woerter je Durchgang, das sind also 25 Durchgaenge.
  */
 const MAX_SET_KARTEN = 1000;
-
-/**
- * Wie viele Karten "Nochmal lernen" ausliefert.
- *
- * Kleiner als MAX_KARTEN, und aus einem Grund: wer freiwillig uebt, will
- * Wiederholung, nicht den kompletten Bestand. Bei 300 Karten waere eine
- * Runde von 300 dann eine Sache von zwei Stunden, die niemand zu Ende
- * macht. 40 sind etwa eine gute Sitzung – lang genug, dass sich ein
- * Stapelwechsel lohnt, kurz genug, dass man ihn beendet.
- */
-const MAX_WIEDERHOLUNG = 40;
 
 /**
  * Liefert die Karten, die fuer diese Person heute faellig sind.

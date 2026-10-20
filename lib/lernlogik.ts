@@ -24,6 +24,24 @@ export const BEWERTUNGEN: {
 export const LEECH_FEHLER = 8;
 
 /**
+ * Wie viele Karten eine normale Runde hoechstens hat.
+ *
+ * Exportiert, weil die App ihre Runde offline selbst baut und dieselbe
+ * Obergrenze braucht. Zwei Zahlen an zwei Stellen waeren zwei Wahrheiten:
+ * die Web-Runde haette 20 Karten, die Offline-Runde 25, und niemand wuerde
+ * es merken, bis jemand beide nebeneinander legt.
+ */
+export const MAX_KARTEN = 20;
+
+/**
+ * Obergrenze fuer Uebungs-, Leech- und Quael-Runden.
+ *
+ * 40 sind etwa eine gute Sitzung – lang genug, dass sich ein Stapelwechsel
+ * lohnt, kurz genug, dass man sie zu Ende bringt.
+ */
+export const MAX_WIEDERHOLUNG = 40;
+
+/**
  * Abstand in Tagen, bis eine Karte mit der aktuellen Stufe wieder faellig wird.
  *
  * Exportiert, weil die oeffentliche Startseite dieselben Zahlen nennt. Eine

@@ -260,6 +260,13 @@ export async function GET(request: Request) {
       stufe: zeile?.stufe ?? 0,
       fehler: zeile?.fehler ?? 0,
       faellig: (zeile?.faellig_am ?? null) !== null,
+      /*
+       * Das Datum zusaetzlich zum Ja/Nein: die App baut ihre Runde offline
+       * aus dieser Liste, und dafuer muss sie wissen, WANN eine Karte
+       * wieder faellig ist. `null` heisst "nie beantwortet" – die App
+       * behandelt das wie heute.
+       */
+      faelligAm: zeile?.faellig_am ?? null,
     };
   });
 
