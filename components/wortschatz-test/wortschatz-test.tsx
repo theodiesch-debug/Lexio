@@ -204,19 +204,36 @@ export default function WortschatzTest({ variante = "werbung" }: { variante?: Va
             dann lernst du genau diese.
           </p>
         )}
-        <button
-          type="button"
-          className={styles.startKnopf}
-          onClick={starten}
-          disabled={phase === "laedt"}
-        >
-          {phase === "laedt" ? "Wörter werden geladen …" : "Test starten"}
-        </button>
-        {phase === "fehler" && (
-          <p className={styles.fehler} role="alert">
-            Die Wortliste ließ sich nicht laden. Prüf die Verbindung und versuch es nochmal.
-          </p>
-        )}
+      <button
+        type="button"
+        className={styles.startKnopf}
+        onClick={starten}
+        disabled={phase === "laedt"}
+      >
+        {phase === "laedt" ? "Wörter werden geladen …" : "Test starten"}
+      </button>
+      {phase === "laedt" && (
+        <div className={styles.baender} aria-busy="true">
+          <span role="status" className={styles.nurVorlesen}>
+            Wörter werden geladen …
+          </span>
+          <div className={styles.skelettKarte} aria-hidden="true">
+            <span className={styles.skelettKarteTitel} />
+            <span className={styles.skelettKarteText} />
+            <span className={`${styles.skelettKarteText} ${styles.skelettKarteTextKurz}`} />
+          </div>
+          <div className={styles.skelettKarte} aria-hidden="true">
+            <span className={styles.skelettKarteTitel} />
+            <span className={styles.skelettKarteText} />
+            <span className={`${styles.skelettKarteText} ${styles.skelettKarteTextKurz}`} />
+          </div>
+        </div>
+      )}
+      {phase === "fehler" && (
+        <p className={styles.fehler} role="alert">
+          Die Wortliste ließ sich nicht laden. Prüf die Verbindung und versuch es nochmal.
+        </p>
+      )}
       </div>
     );
   }
