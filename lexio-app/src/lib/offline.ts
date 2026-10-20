@@ -35,6 +35,8 @@ import {
 } from "@lexio/lernlogik";
 import type { LernAntwort, LernKarte, LernSetInfo } from "@lexio/types";
 
+import { sendeJson } from "./api";
+
 const SCHLUESSEL_SET = "lexio.offline.set.";
 const SCHLUESSEL_LISTE = "lexio.offline.sets";
 const SCHLUESSEL_QUEUE = "lexio.offline.antworten";
@@ -337,4 +339,153 @@ export async function antwortenNachschieben(
 
   await queueSchreiben(rest);
   return uebertragen;
+}
+
+/* --------------------------------------------- Etappe 4: Karten ohne Netz */
+
+/** Ein Wortpaar, so wie `POST /api/karten` es erwartet. */
+export type NeuesPaar = {
+  frage: string;
+  antwort: string;
+  beispielsatz: string | null;
+  beispiel_uebersetzung: string | null;
+};
+
+/**
+ * Was offline angelegt wurde. Zwei Faelle: in ein bestehendes Set (Slug
+ * bekannt) oder ein neues Set, dessen Slug erst der Server vergibt. Der
+ * zweite Fall ist der Grund, warum die Karten nicht einfach in den
+ * Lesecache wandern: ohne Slug gibt es kein Set, in das sie passen.
+ */
+export type NeuerEintrag =
+  | { art: "karten"; setSlug: string; paare: NeuesPaar[] }
+  | { art: "set"; name: string; spracheCode: string; paare: NeuesPaar[] };
+
+export type WartendeKarten = NeuerEintrag & { zeitpunkt: string };
+
+const SCHLUESSEL_NEUE = "lexio.offline.neue";
+
+/** Anlegen, das noch nicht beim Server war. */
+export async function neueKartenMerken(eintrag: NeuerEintrag): Promise<void> {
+  const liste = await wartendeKarten();
+  liste.push({ ...eintrag, zeitpunkt: new Date().toISOString() });
+  try {
+    await AsyncStorage.setItem(SCHLUESSEL_NEUE, JSON.stringify(liste));
+  } catch {
+    // Siehe setCachen.
+  }
+}
+
+export async function wartendeKarten(): Promise<WartendeKarten[]> {
+  try {
+    const roh = await AsyncStorage.getItem(SCHLUESSEL_NEUE);
+    if (!roh) return [];
+    const wert = JSON.parse(roh) as unknown;
+    if (!Array.isArray(wert)) return [];
+    return wert.filter((eintrag): eintrag is WartendeKarten => {
+      if (typeof eintrag !== "object" || eintrag === null) return false;
+      const e = eintrag as Record<string, unknown>;
+      if (e.art !== "karten" && e.art !== "set") return false;
+      return Array.isArray(e.paare) && e.paare.length > 0;
+    });
+  } catch {
+    return [];
+  }
+}
+
+async function neueSchreiben(liste: WartendeKarten[]): Promise<void> {
+  try {
+    await AsyncStorage.setItem(SCHLUESSEL_NEUE, JSON.stringify(liste));
+  } catch {
+    // Siehe setCachen.
+  }
+}
+
+/**
+ * Anlegen nachschieben, in der Reihenfolge des Anlegens – ein neues Set muss
+ * vor seinen Karten beim Server sein. Regeln wie bei den Antworten: ohne Netz
+ * bleibt der Rest liegen, ein echter Serverfehler verwirft den Eintrag.
+ */
+export async function neueKartenNachschieben(
+  senden: (eintrag: WartendeKarten) => Promise<void>,
+): Promise<number> {
+  const liste = await wartendeKarten();
+  if (liste.length === 0) return 0;
+
+  let uebertragen = 0;
+  const rest: WartendeKarten[] = [];
+  let netzWeg = false;
+
+  for (const eintrag of liste) {
+    if (netzWeg) {
+      rest.push(eintrag);
+      continue;
+    }
+    try {
+      await senden(eintrag);
+      uebertragen += 1;
+    } catch (fehler: unknown) {
+      const status =
+        typeof fehler === "object" && fehler !== null && "status" in fehler
+          ? (fehler as { status?: unknown }).status
+          : undefined;
+      if (status === 0) {
+        netzWeg = true;
+        rest.push(eintrag);
+      } else {
+        console.warn(`[offline] Karten verworfen: ${String(fehler)}`);
+      }
+    }
+  }
+
+  await neueSchreiben(rest);
+  return uebertragen;
+}
+
+/**
+ * Der bequeme Weg fuer die Bildschirme: Queue mit den echten Routen
+ * nachschieben. Die Reihenfolge stimmt, weil `neueKartenNachschieben` der
+ * Reihe nach sendet und ein neues Set vor seinen Karten anlegt.
+ */
+export async function neueKartenUebertragen(): Promise<number> {
+  return neueKartenNachschieben(async (eintrag: WartendeKarten) => {
+    let slug = eintrag.art === "karten" ? eintrag.setSlug : null;
+    if (!slug && eintrag.art === "set") {
+      const daten = await sendeJson<{ set: { slug: string } }>("/api/sets", {
+        name: eintrag.name,
+        spracheCode: eintrag.spracheCode,
+      });
+      slug = daten.set.slug;
+    }
+    if (!slug) return;
+    await sendeJson("/api/karten", { setSlug: slug, paare: eintrag.paare });
+  });
+}
+
+/* ------------------------------------------------- Sprachkatalog */
+
+const SCHLUESSEL_SPRACHEN = "lexio.offline.sprachen";
+
+/**
+ * `/api/sprachen` ist ein fester Katalog, der sich praktisch nie aendert.
+ * Ohne ihn waere offline kein neues Set anlegbar: ohne Liste gibt es keine
+ * Pille zum Anwahlen, und die Sprache ist Pflicht.
+ */
+export async function sprachenCachen(daten: unknown): Promise<void> {
+  try {
+    await AsyncStorage.setItem(SCHLUESSEL_SPRACHEN, JSON.stringify(daten));
+  } catch {
+    // Siehe setCachen.
+  }
+}
+
+export async function sprachenAusCache<T>(): Promise<T | null> {
+  try {
+    const roh = await AsyncStorage.getItem(SCHLUESSEL_SPRACHEN);
+    if (!roh) return null;
+    const wert = JSON.parse(roh) as unknown;
+    return Array.isArray(wert) && wert.length > 0 ? (wert as T) : null;
+  } catch {
+    return null;
+  }
 }

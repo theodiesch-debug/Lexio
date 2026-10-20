@@ -23,7 +23,12 @@ import { SERIF, SANS } from "../../design/schrift";
 import { useDesign } from "../../design/theme";
 import { ABSTAND, heroVerlauf, RADIUS } from "../../design/tokens";
 import { ApiFehler, holeJson, sendeJson } from "../../lib/api";
-import { antwortenNachschieben, listeAusCache, listeCachen } from "../../lib/offline";
+import {
+    antwortenNachschieben,
+    listeAusCache,
+    listeCachen,
+    neueKartenUebertragen,
+} from "../../lib/offline";
 import type { ProfilDaten } from "../../lib/profil-daten";
 
 type Meldung = { text: string; fehler: boolean } | null;
@@ -62,6 +67,8 @@ export default function Uebersicht() {
                 void antwortenNachschieben(async (kartenId, bewertung) => {
                     await sendeJson("/api/lernen/antwort", { kartenId, bewertung });
                 }).catch(() => 0);
+                // Und was offline angelegt wurde – ebenfalls als Nachtrag.
+                void neueKartenUebertragen().catch(() => 0);
             } catch (fehler: unknown) {
                 const ohneNetz = fehler instanceof ApiFehler && fehler.status === 0;
                 const zwischen = ohneNetz ? await listeAusCache<KachelSet[]>() : null;

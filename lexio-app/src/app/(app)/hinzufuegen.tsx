@@ -34,6 +34,15 @@ import { SANS, SERIF } from "@/design/schrift";
 import { useDesign } from "@/design/theme";
 import { ABSTAND, KARTEN_TINTE, RADIUS } from "@/design/tokens";
 import { ApiFehler, holeJson, sendeJson } from "@/lib/api";
+import {
+    listeAusCache,
+    listeCachen,
+    neueKartenMerken,
+    neueKartenUebertragen,
+    sprachenAusCache,
+    sprachenCachen,
+    type NeuesPaar,
+} from "@/lib/offline";
 import { kopieName, MAX_SET_NAME } from "@lexio/kopie-name";
 import { farbeVonSprache, type Sprache, type SpracheInfo } from "@lexio/sprachen";
 import { textblockZuPaaren } from "@lexio/textblock-import";
@@ -106,9 +115,14 @@ export default function Hinzufuegen() {
     const [status, setStatus] = useState<Status>("idle");
     const [fehler, setFehler] = useState<Fehler>({});
     const [zaehler, setZaehler] = useState(0);
-    const [fertig, setFertig] = useState<{ name: string; slug: string; anzahl: number } | null>(
-        null,
-    );
+    // `slug: null` heisst: offline angelegt, der Server kennt das Set noch
+    // nicht. "Jetzt lernen" gibt es dann nicht – es gibt noch nichts zu lernen.
+    const [fertig, setFertig] = useState<{
+        name: string;
+        slug: string | null;
+        anzahl: number;
+        offline?: boolean;
+    } | null>(null);
 
     /** Laufender Beispielsatz-Füllvorgang bzw. dessen Zusammenfassung. */
     const [beispielStatus, setBeispielStatus] = useState<{
@@ -133,12 +147,25 @@ export default function Hinzufuegen() {
     useEffect(() => {
         let abgebrochen = false;
         holeJson<Sprache[] | null>("/api/sprachen", null)
-            .then((daten) => {
+            .then(async (daten) => {
                 if (abgebrochen) return;
-                setSprachListe(daten ?? []);
+                if (daten !== null) {
+                    setSprachListe(daten);
+                    void sprachenCachen(daten);
+                    return;
+                }
+                // Ohne Netz: der Katalog ist fast unveraendert – ohne ihn
+                // koennte man offline gar kein neues Set anlegen.
+                const zwischen = await sprachenAusCache<Sprache[]>();
+                if (!abgebrochen) setSprachListe(zwischen ?? []);
             })
-            .catch((f: unknown) => {
+            .catch(async (f: unknown) => {
+                const zwischen = await sprachenAusCache<Sprache[]>();
                 if (abgebrochen) return;
+                if (zwischen) {
+                    setSprachListe(zwischen);
+                    return;
+                }
                 setSprachFehler(
                     f instanceof ApiFehler
                         ? f.message
@@ -152,14 +179,29 @@ export default function Hinzufuegen() {
 
     useEffect(() => {
         let abgebrochen = false;
+
+        /*
+         * Was offline angelegt wurde, jetzt nachschieben – vor dem Laden der
+         * Liste, damit ein gerade angelegtes Set gleich darin auftaucht.
+         */
+        void neueKartenUebertragen().catch(() => 0);
+
         holeJson<SetZeile[] | null>("/api/karteikarten", null)
-            .then((daten) => {
+            .then(async (daten) => {
                 if (abgebrochen) return;
-                setSets(daten ?? []);
+                if (daten !== null) {
+                    setSets(daten);
+                    void listeCachen(daten);
+                    return;
+                }
+                // Ohne Netz: die letzte bekannte Liste, damit ein bestehendes
+                // Set auch offline waehlbar bleibt.
+                const zwischen = await listeAusCache<SetZeile[]>();
+                if (!abgebrochen) setSets(zwischen ?? []);
             })
-            .catch(() => {
-                if (abgebrochen) return;
-                setSets([]);
+            .catch(async () => {
+                const zwischen = await listeAusCache<SetZeile[]>();
+                if (!abgebrochen) setSets(zwischen ?? []);
             })
             .finally(() => {
                 if (!abgebrochen) setSetsGeladen(true);
@@ -384,6 +426,17 @@ export default function Hinzufuegen() {
         setSchritt((s) => (s === 1 ? 1 : ((s - 1) as Schritt)));
     }
 
+    /*
+     * Schrittwechsel erst im naechsten Task. react-native-web feuert nach dem
+     * pointerup noch ein click-Event an dieselbe Stelle; wechselt die Ansicht
+     * schon waehrend des pointerup, landet dieses click auf dem Knopf des
+     * naechsten Schritts – und speichert ungefragt ein Wort, das niemand
+     * speichern wollte.
+     */
+    function naechsterSchritt(ziel: Schritt) {
+        setTimeout(() => setSchritt(ziel), 0);
+    }
+
     function weiter() {
         setFehler({});
 
@@ -392,7 +445,7 @@ export default function Hinzufuegen() {
                 setFehler({ auswahl: "Wähle ein Set oder lege ein neues an." });
                 return;
             }
-            setSchritt(2);
+            naechsterSchritt(2);
             return;
         }
 
@@ -414,7 +467,7 @@ export default function Hinzufuegen() {
                 return;
             }
             setSetName(gewaehltesSet ? gewaehltesSet.name : "");
-            setSchritt(3);
+            naechsterSchritt(3);
         }
     }
 
@@ -441,11 +494,25 @@ export default function Hinzufuegen() {
         setStatus("speichert");
         setFehler({});
 
+        const paareApi: NeuesPaar[] = gefuelltePaare.map((p) => ({
+            frage: p.frage.trim(),
+            antwort: p.antwort.trim(),
+            // Leere Beispielsätze als null, nicht als "" – sonst stünde
+            // später ein leerer String in der Datenbank.
+            beispielsatz: p.beispiel.trim() || null,
+            beispiel_uebersetzung: p.beispielUebersetzung.trim() || null,
+        }));
+
+        /*
+         * Aussen deklariert, weil der Offline-Zweig im catch wissen muss, ob
+         * das Set schon einen Slug hat: dann hängen nur die Karten in der
+         * Queue, sonst das ganze Set.
+         */
+        let slug = anlegen ? null : gewaehltesSet!.id;
+
         try {
             // Name unverändert + bestehendes Set -> direkt hineinspeichern.
             // Sonst ein neues Set anlegen und dorthin speichern.
-            let slug = anlegen ? null : gewaehltesSet!.id;
-
             if (!slug) {
                 const daten = await sendeJson<{ set: { slug: string } }>("/api/sets", {
                     name,
@@ -454,17 +521,7 @@ export default function Hinzufuegen() {
                 slug = daten.set.slug;
             }
 
-            await sendeJson("/api/karten", {
-                setSlug: slug,
-                paare: gefuelltePaare.map((p) => ({
-                    frage: p.frage.trim(),
-                    antwort: p.antwort.trim(),
-                    // Leere Beispielsätze als null, nicht als "" – sonst stünde
-                    // später ein leerer String in der Datenbank.
-                    beispielsatz: p.beispiel.trim() || null,
-                    beispiel_uebersetzung: p.beispielUebersetzung.trim() || null,
-                })),
-            });
+            await sendeJson("/api/karten", { setSlug: slug, paare: paareApi });
 
             /*
              * Liste neu laden, damit „Noch mehr Wörter" den gerade angelegten
@@ -482,6 +539,35 @@ export default function Hinzufuegen() {
             setAuswahl(slug);
             setStatus("idle");
         } catch (grund) {
+            if (grund instanceof ApiFehler && grund.status === 0) {
+                /*
+                 * Ohne Netz: vormerken statt verlieren. Hat das Set schon
+                 * einen Slug (bestand vorher, oder es wurde eben online
+                 * angelegt), hängen nur die Karten in der Queue – sonst geht
+                 * beides zusammen, weil der Slug erst beim Anlegen entsteht.
+                 */
+                if (slug) {
+                    await neueKartenMerken({ art: "karten", setSlug: slug, paare: paareApi });
+                } else if (spracheCode) {
+                    await neueKartenMerken({
+                        art: "set",
+                        name,
+                        spracheCode,
+                        paare: paareApi,
+                    });
+                } else {
+                    setFehler({ sprache: "Welche Sprache?" });
+                    setStatus("fehler");
+                    return;
+                }
+
+                setZaehler((z) => z + paareApi.length);
+                setFertig({ name, slug, anzahl: paareApi.length, offline: true });
+                setAuswahl(slug);
+                setStatus("idle");
+                return;
+            }
+
             // Feldfehler (unvollständiges Paar) -> zurück in Schritt 2 und das
             // betroffene Feld markieren; sonst bliebe die Meldung in Schritt 3
             // an einem Feld stehen, das gar nicht sichtbar ist.
@@ -506,12 +592,13 @@ export default function Hinzufuegen() {
     // ------------------------------------------------------------- Erfolg
 
     if (fertig) {
+        const zielSlug = fertig.slug;
         return (
             <View style={[styles.rahmen, { backgroundColor: farben.background }]}>
                 <ScrollView contentContainerStyle={styles.seite}>
                     <View style={styles.erfolgKopf}>
                         <Text style={[styles.erfolgTitel, { color: farben.textPrimary }]}>
-                            Gespeichert
+                            {fertig.offline ? "Offline gespeichert" : "Gespeichert"}
                         </Text>
                         <Text style={[styles.erfolgUnter, { color: farben.textSecondary }]}>
                             {fertig.anzahl} {fertig.anzahl === 1 ? "Wort" : "Wörter"} in {fertig.name}
@@ -526,13 +613,16 @@ export default function Hinzufuegen() {
                             </Text>
                         </View>
                         <Text style={[styles.hinweis, { color: farben.textSecondary }]}>
-                            Das Set landet auf deiner Übersicht. Von dort kannst du lernen oder es
-                            wieder löschen.
+                            {fertig.offline
+                                ? "Ohne Verbindung gespeichert. Die Wörter gehen raus, sobald du wieder Netz hast – dann stehen sie auch im Web."
+                                : "Das Set landet auf deiner Übersicht. Von dort kannst du lernen oder es wieder löschen."}
                         </Text>
-                        <Knopf
-                            titel="Jetzt lernen"
-                            onPress={() => router.push(`/lernen/${encodeURIComponent(fertig.slug)}`)}
-                        />
+                        {zielSlug ? (
+                            <Knopf
+                                titel="Jetzt lernen"
+                                onPress={() => router.push(`/lernen/${encodeURIComponent(zielSlug)}`)}
+                            />
+                        ) : null}
                         <Knopf titel="Zur Übersicht" variante="rand" onPress={() => router.push("/")} />
                         <Knopf
                             titel="Noch mehr Wörter"
@@ -976,7 +1066,7 @@ export default function Hinzufuegen() {
                         </>
                     ) : null}
 
-                    {sprachFehler ? (
+                    {sprachFehler && legtNeuesSetAn ? (
                         <Text style={[styles.fehlerText, { color: farben.terracotta }]}>
                             {sprachFehler}
                         </Text>
