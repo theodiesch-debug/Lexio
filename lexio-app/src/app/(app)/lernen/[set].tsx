@@ -11,7 +11,7 @@
  * @lexio/lernlogik. Geändert wurde nur die Darstellung.
  */
 
-import { BEWERTUNGEN } from "@lexio/lernlogik";
+import { BEWERTUNGEN, xpFuerBewertung } from "@lexio/lernlogik";
 import { schwerChance } from "@lexio/reihenfolge";
 import { xpFormatieren } from "@lexio/profil";
 import type { LernAntwort, LernKarte } from "@lexio/types";
@@ -41,6 +41,15 @@ import { ApiFehler, holeJson, sendeJson } from "../../../lib/api";
 import { rundenFortschritt } from "../../../lib/rundenfortschritt";
 import { rotiere } from "../../../lib/rundenrotation";
 import { supabase } from "../../../lib/supabase";
+import {
+  antwortMerken,
+  antwortenNachschieben,
+  baueRunde,
+  fortschrittLokal,
+  setAusCache,
+  setCachen,
+  type KartenListe,
+} from "../../../lib/offline";
 import { TON_STANDARD, tonLesen, type TonStand } from "../../../lib/ton";
 import { spreche, stoppe } from "../../../lib/vorlesen";
 
@@ -138,6 +147,12 @@ export default function Lernen() {
    * Kompromiss wie beim Design – kurze Zeit die Vorgabe, dann die Wahl.
    */
   const [tonStand, setTonStand] = useState<TonStand>(TON_STANDARD);
+  /*
+   * Wird wahr, sobald eine Runde oder eine Antwort ohne Netz lief.
+   * Steht als Hinweis ueber der Karte, damit niemand raetselt, warum
+   * die XP-Zahl nicht im Web auftaucht.
+   */
+  const [offline, setOffline] = useState(false);
 
   const [xp, setXp] = useState(0);
   const [streak, setStreak] = useState<number | null>(null);
@@ -177,35 +192,81 @@ export default function Lernen() {
    */
   useEffect(() => {
     let gestoppt = false;
-    supabase.auth.getSession().then(({ data }) => {
+
+    const rundeZeigen = (daten: LernAntwort) => {
+      setAntwort(daten);
+      setStapel(daten.karten);
+      setFertig(false);
+      setAufgedeckt(false);
+      setIndex(0);
+      setSchwerZaehler({});
+      setFehler(null);
+      setMeldung(null);
+      setLaden(false);
+    };
+
+    void (async () => {
+      const { data } = await supabase.auth.getSession();
       if (gestoppt) return;
       if (!data.session) {
         router.replace("/anmelden");
         return;
       }
-      holeJson<LernAntwort>(urlRunde())
-        .then((daten) => {
-          if (gestoppt) return;
-          setAntwort(daten);
-          setStapel(daten.karten);
-          setFertig(false);
-          setAufgedeckt(false);
-          setIndex(0);
-          setSchwerZaehler({});
-          setFehler(null);
-          setMeldung(null);
-          setLaden(false);
-        })
-        .catch((grund: unknown) => {
-          if (gestoppt) return;
-          setFehler(grund instanceof ApiFehler ? grund.message : "Unerwarteter Fehler.");
-          setLaden(false);
-        });
-    });
+
+      /*
+       * Erst nachschieben, was offline liegen geblieben ist. Die Runde soll
+       * den Stand zeigen, den der Server kennt. Klappt es nicht, bleibt die
+       * Queue einfach stehen.
+       */
+      await antwortenNachschieben(async (kartenId, bewertung) => {
+        await sendeJson("/api/lernen/antwort", { kartenId, bewertung });
+      }).catch(() => 0);
+      if (gestoppt) return;
+
+      try {
+        const daten = await holeJson<LernAntwort>(urlRunde());
+        if (gestoppt) return;
+        rundeZeigen(daten);
+        setOffline(false);
+
+        /*
+         * Im Hintergrund den ganzen Satz nachladen – die Route liefert nur
+         * die Karten dieser Runde, offline braucht es alle. Nicht abwarten:
+         * die Runde ist schon da, und ein Fehler hier darf sie nicht kippen.
+         */
+        void holeJson<KartenListe>(`/api/karten?setSlug=${encodeURIComponent(slug)}`)
+          .then((liste) => setCachen(daten.set, liste.karten))
+          .catch(() => undefined);
+      } catch (grund) {
+        if (gestoppt) return;
+        const ohneNetz = grund instanceof ApiFehler && grund.status === 0;
+        const stand = ohneNetz ? await setAusCache(slug) : null;
+        if (gestoppt) return;
+        if (stand) {
+          /*
+           * Ohne Netz, aber mit Ablage: die Runde kommt vom Geraet. Die
+           * Regeln sind dieselben wie in der Route (siehe lib/offline).
+           */
+          rundeZeigen(baueRunde(stand, modus));
+          setOffline(true);
+          return;
+        }
+        setFehler(
+          ohneNetz
+            ? "Keine Verbindung – und für dieses Set ist noch nichts gespeichert. " +
+                "Lerne es einmal mit Netz, danach geht es auch offline."
+            : grund instanceof ApiFehler
+              ? grund.message
+              : "Unerwarteter Fehler.",
+        );
+        setLaden(false);
+      }
+    })();
+
     return () => {
       gestoppt = true;
     };
-  }, [urlRunde, neustart]);
+  }, [urlRunde, neustart, slug, modus]);
 
   useEffect(() => () => stoppe(), []);
 
@@ -242,46 +303,70 @@ export default function Lernen() {
     if (!karte || bewertend) return;
     setBewertend(true);
     setMeldung(null);
+
+    let xpErhalten = 0;
+    let streakWert: number | null | undefined;
+
     try {
       const ergebnis = await sendeJson<{ xp?: number; streak?: number | null }>(
         "/api/lernen/antwort",
         { kartenId: karteId, bewertung },
       );
-      const xpErhalten = ergebnis.xp ?? 0;
-      setXp((vorher) => vorher + xpErhalten);
-      if (xpErhalten > 0) setPop({ key: naechstePopNummer(), xp: xpErhalten });
-      if (ergebnis.streak !== undefined && ergebnis.streak !== null) {
-        setStreak(ergebnis.streak);
-      }
-      setLetzteAntwort({ kartenId: karteId, xp: xpErhalten });
-
-      const schwerBleibt =
-        bewertung === "schwer" &&
-        entscheideSchwer(schwerChance(karte.schwierigkeit, schwerZaehler[karteId] ?? 0));
-      if (bewertung === "schwer") {
-        setSchwerZaehler((zaehler) => ({
-          ...zaehler,
-          [karteId]: (zaehler[karteId] ?? 0) + 1,
-        }));
-      }
-
-      const { stapel: neuerStapel, fertig: rundeFertig } = rotiere(
-        stapel,
-        index,
-        karte,
-        bewertung,
-        schwerBleibt,
-      );
-      setStapel(neuerStapel);
-      if (rundeFertig) {
-        setFertig(true);
-      }
-
-      setAufgedeckt(false);
-      stoppe();
+      xpErhalten = ergebnis.xp ?? 0;
+      streakWert = ergebnis.streak;
+      // Den Cache mitziehen, damit eine spätere Offline-Runde denselben
+      // Stand hat. Nicht abwarten – die Karte ist schon verbucht.
+      void fortschrittLokal(slug, karteId, bewertung);
     } catch (grund) {
-      setMeldung(grund instanceof ApiFehler ? grund.message : "Unerwarteter Fehler.");
+      if (!(grund instanceof ApiFehler) || grund.status !== 0) {
+        setMeldung(grund instanceof ApiFehler ? grund.message : "Unerwarteter Fehler.");
+        setBewertend(false);
+        return;
+      }
+      /*
+       * Ohne Netz: lokal verbuchen und vormerken. Die XP kommen aus derselben
+       * Funktion wie im Web; beim Nachschieben bringt der Server sie ohnehin
+       * mit, hier zählen sie nur für die Anzeige. Die Stufe rechnet
+       * `fortschrittLokal` mit der geteilten Regel aus `@lexio/lernlogik`,
+       * also derselben, die auch die Datenbankfunktion benutzt.
+       */
+      xpErhalten = xpFuerBewertung(bewertung);
+      await fortschrittLokal(slug, karteId, bewertung);
+      await antwortMerken(karteId, bewertung);
+      setOffline(true);
     }
+
+    setXp((vorher) => vorher + xpErhalten);
+    if (xpErhalten > 0) setPop({ key: naechstePopNummer(), xp: xpErhalten });
+    if (streakWert !== undefined && streakWert !== null) {
+      setStreak(streakWert);
+    }
+    setLetzteAntwort({ kartenId: karteId, xp: xpErhalten });
+
+    const schwerBleibt =
+      bewertung === "schwer" &&
+      entscheideSchwer(schwerChance(karte.schwierigkeit, schwerZaehler[karteId] ?? 0));
+    if (bewertung === "schwer") {
+      setSchwerZaehler((zaehler) => ({
+        ...zaehler,
+        [karteId]: (zaehler[karteId] ?? 0) + 1,
+      }));
+    }
+
+    const { stapel: neuerStapel, fertig: rundeFertig } = rotiere(
+      stapel,
+      index,
+      karte,
+      bewertung,
+      schwerBleibt,
+    );
+    setStapel(neuerStapel);
+    if (rundeFertig) {
+      setFertig(true);
+    }
+
+    setAufgedeckt(false);
+    stoppe();
     setBewertend(false);
   };
 
@@ -301,7 +386,13 @@ export default function Lernen() {
       setLetzteAntwort(null);
       neuladen();
     } catch (grund) {
-      setMeldung(grund instanceof ApiFehler ? grund.message : "Unerwarteter Fehler.");
+      setMeldung(
+        grund instanceof ApiFehler && grund.status === 0
+          ? "Ohne Verbindung lässt sich die letzte Antwort nicht zurücknehmen."
+          : grund instanceof ApiFehler
+            ? grund.message
+            : "Unerwarteter Fehler.",
+      );
     }
     setBewertend(false);
   };
@@ -434,6 +525,21 @@ export default function Lernen() {
           ) : null}
         </View>
       </View>
+
+      {/*
+       * Offline-Hinweis ueber der Karte, nicht als Fehler: die Runde
+       * funktioniert, nur ihre Antworten stehen noch aus. Der Text sagt
+       * beides, damit niemand die XP im Web sucht und sie nicht findet.
+       */}
+      {offline ? (
+        <Text
+          accessibilityLiveRegion="polite"
+          style={[styles.offlineHinweis, { color: farben.textMuted }]}
+        >
+          Offline · die Runde kommt vom Gerät. Antworten werden übertragen, sobald du wieder
+          Netz hast.
+        </Text>
+      ) : null}
 
       {/* Bühne mit drehbarer Karte */}
       <View style={styles.buehne}>
@@ -962,6 +1068,14 @@ const styles = StyleSheet.create({
   },
 
   modeHinweis: { marginTop: ABSTAND.md, fontFamily: SANS.regular, fontSize: 13, textAlign: "center" },
+  offlineHinweis: {
+    paddingHorizontal: ABSTAND.lg,
+    paddingBottom: ABSTAND.xs,
+    fontFamily: SANS.medium,
+    fontSize: 12,
+    lineHeight: 17,
+    textAlign: "center",
+  },
   meldung: { fontFamily: SANS.regular, fontSize: 13, textAlign: "center", paddingHorizontal: ABSTAND.xl },
 
   xpPop: { position: "absolute", top: "22%", left: 0, right: 0, alignItems: "center" },

@@ -22,7 +22,8 @@ import { Leerzustand, Melde, Skelett } from "../../components/zustand";
 import { SERIF, SANS } from "../../design/schrift";
 import { useDesign } from "../../design/theme";
 import { ABSTAND, heroVerlauf, RADIUS } from "../../design/tokens";
-import { ApiFehler, holeJson } from "../../lib/api";
+import { ApiFehler, holeJson, sendeJson } from "../../lib/api";
+import { antwortenNachschieben, listeAusCache, listeCachen } from "../../lib/offline";
 import type { ProfilDaten } from "../../lib/profil-daten";
 
 type Meldung = { text: string; fehler: boolean } | null;
@@ -38,32 +39,69 @@ export default function Uebersicht() {
     const ladeSets = useCallback(async () => {
         const daten = await holeJson<KachelSet[]>("/api/karteikarten", []);
         setSets(Array.isArray(daten) ? daten : []);
+        void listeCachen(daten);
     }, []);
 
     useEffect(() => {
         let abgebrochen = false;
-        Promise.all([
-            holeJson<KachelSet[]>("/api/karteikarten", []),
-            holeJson<ProfilDaten | null>("/api/profil", null),
-        ])
-            .then(([setDaten, profilDaten]) => {
+
+        void (async () => {
+            let ausCache = false;
+
+            try {
+                const setDaten = await holeJson<KachelSet[]>("/api/karteikarten");
                 if (abgebrochen) return;
                 setSets(Array.isArray(setDaten) ? setDaten : []);
-                setProfil(profilDaten);
-            })
-            .catch((fehler: unknown) => {
+                void listeCachen(setDaten);
+
+                /*
+                 * Was offline liegen blieb, jetzt nachschieben. Bewusst ohne
+                 * Warten und ohne Meldung: es ist ein Nachtrag, kein Teil
+                 * dieser Ansicht. Klappt es nicht, bleibt es in der Queue.
+                 */
+                void antwortenNachschieben(async (kartenId, bewertung) => {
+                    await sendeJson("/api/lernen/antwort", { kartenId, bewertung });
+                }).catch(() => 0);
+            } catch (fehler: unknown) {
+                const ohneNetz = fehler instanceof ApiFehler && fehler.status === 0;
+                const zwischen = ohneNetz ? await listeAusCache<KachelSet[]>() : null;
                 if (abgebrochen) return;
+                if (zwischen) {
+                    setSets(Array.isArray(zwischen) ? zwischen : []);
+                    ausCache = true;
+                } else {
+                    setMeldung({
+                        text:
+                            fehler instanceof ApiFehler
+                                ? fehler.message
+                                : "Übersicht konnte nicht geladen werden.",
+                        fehler: true,
+                    });
+                }
+            }
+
+            /*
+             * Das Profil ist Schmuck auf dieser Seite: ohne Netz bleibt es
+             * leer, statt eine zweite Fehlermeldung neben die erste zu
+             * stellen.
+             */
+            try {
+                const profilDaten = await holeJson<ProfilDaten | null>("/api/profil", null);
+                if (!abgebrochen) setProfil(profilDaten);
+            } catch {
+                // Siehe oben.
+            }
+
+            if (abgebrochen) return;
+            setLaden(false);
+            if (ausCache) {
                 setMeldung({
-                    text:
-                        fehler instanceof ApiFehler
-                            ? fehler.message
-                            : "Übersicht konnte nicht geladen werden.",
-                    fehler: true,
+                    text: "Offline · die Liste ist vom letzten Laden. Lernen geht weiter.",
+                    fehler: false,
                 });
-            })
-            .finally(() => {
-                if (!abgebrochen) setLaden(false);
-            });
+            }
+        })();
+
         return () => {
             abgebrochen = true;
         };

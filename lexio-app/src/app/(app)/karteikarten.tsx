@@ -30,6 +30,7 @@ import { CAVEAT, MONO, SANS, SERIF } from "@/design/schrift";
 import { useDesign } from "@/design/theme";
 import { ABSTAND, MASS, RADIUS } from "@/design/tokens";
 import { holeJson } from "@/lib/api";
+import { listeAusCache, listeCachen } from "@/lib/offline";
 
 type SetZeile = {
   id: string;
@@ -83,24 +84,36 @@ export default function Karteikarten() {
 
   useEffect(() => {
     let abgebrochen = false;
-    holeJson<SetZeile[] | null>("/api/karteikarten", null)
-      .then((daten) => {
-        if (abgebrochen) return;
-        if (daten === null) {
-          setFehler("Karteikarten konnten nicht geladen werden.");
-          setSets([]);
-          return;
-        }
+
+    void (async () => {
+      const daten = await holeJson<SetZeile[] | null>("/api/karteikarten", null).catch(
+        () => null,
+      );
+      if (abgebrochen) return;
+
+      if (daten !== null) {
         setSets(daten);
         setFehler(null);
-      })
-      .catch(() => {
+        void listeCachen(daten);
+      } else {
+        /*
+         * Ohne Netz (oder mit einem Fehler) zaehlt die letzte bekannte
+         * Liste. Sie ist ehrlich als solche gekennzeichnet: wer offline
+         * Sets sieht, soll wissen, dass die Zahlen von gestern sein koennen.
+         */
+        const zwischen = await listeAusCache<SetZeile[]>();
         if (abgebrochen) return;
-        setFehler("Karteikarten konnten nicht geladen werden.");
-      })
-      .finally(() => {
-        if (!abgebrochen) setLaden(false);
-      });
+        if (zwischen) {
+          setSets(zwischen);
+          setFehler("Offline · die Liste ist vom letzten Laden.");
+        } else {
+          setFehler("Karteikarten konnten nicht geladen werden.");
+          setSets([]);
+        }
+      }
+      setLaden(false);
+    })();
+
     return () => {
       abgebrochen = true;
     };
