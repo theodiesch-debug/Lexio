@@ -76,12 +76,24 @@ nicht pushen, nicht bauen. Der Arbeitsbaum bleibt liegen, wie er ist.
 
 Diese Regel steht hier, weil Kiro sich zwischen Sitzungen nichts merkt.
 
-<!-- BEGIN:nextjs-agent-rules -->
+## Stilrichtlinie für Animationen (UX)
 
-# This is NOT the Next.js you know
+**Regel „Schrittweise aufgebaut" (staggered reveal):** Für Listen, Kartenraster
+oder Startseiten-Abschnitte immer erst die Struktur (Skeletons), dann das
+Erscheinbild blockweise von oben nach unten / links nach rechts aufbauen.
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
-
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
-
-<!-- END:nextjs-agent-rules -->
+- **Einstiege oben:** Section-Header + erste CTA-Karte in kleiner Staffelung
+  (z. B. 0ms, 80ms, 160ms, 240ms, 320ms) mit `translateX(-26px)` → `0`,
+  `opacity 0→1`, `cubic-bezier(0.22,0.61,0.36,1)`.
+- **Raster/Kacheln:** Nur vertikales `translateY(10px)→0`, keine
+  seitliche Schiebung; Staffelung begrenzen (max. ~8–10 Elemente sichtbar
+  gestaffelt, Rest gleichzeitig), um lange Listen nicht träge wirken zu lassen.
+- **Skeletons:** Immer in derselben Form wie der spätere Inhalt, damit kein
+  Layout-Sprung entsteht. `aria-busy="true"`, versteckter Statustext
+  (`.nurVorlesen`) für Screenreader, Balken `aria-hidden="true"`.
+- **Dialoge/Overlays:** Schleier `opacity 0→1` (160ms), Dialog leicht
+  aufspringen (`translateY(8px) scale(0.97)→0 1`, 200ms).
+- **Reduziert Bewegungen:** Global bereits über
+  `@media (prefers-reduced-motion: reduce)` abgesichert (alle Animationen auf
+  0.01ms reduziert, Endzustand beibehalten). Neue Keyframes immer kompatibel
+  dazu gestalten.
