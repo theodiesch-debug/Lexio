@@ -1851,6 +1851,36 @@ gleiche Stufen, gleiche XP, keine verlorene Karte, kein Fehlerbildschirm.
 
 **Reihenfolge gegenüber dem USP:** noch offen, steht beim Nutzer.
 
+### Stand 2026-10-20 — Etappen 1–4 umgesetzt und geprüft
+
+Alle vier Etappen laufen auf `main`. Der Speicher ist das AsyncStorage, nicht
+eine zweite Datenbank: alles sind Handvoll JSON-Dokumente unter
+`lexio.offline.*`, und AsyncStorage war schon für Design, Erinnerung und
+Sitzung im Einsatz (`lexio-app/src/lib/offline.ts`).
+
+| Etappe | Umsetzung |
+| --- | --- |
+| 1 Lesecache | `GET /api/karten?setSlug=` landet bei jeder Runde im Hintergrund im Gerät; Set-Liste und Sprachkatalog liegen zusätzlich im Speicher, sonst ließe sich offline kein neues Set benennen |
+| 2 Lernstand lokal | `faelligAm` je Karte kommt seit `e60700a` mit aus der API; die Runde wird clientseitig aus `MAX_KARTEN`/`MAX_WIEDERHOLUNG` in `lib/lernlogik.ts` gebaut – dieselben Zahlen wie die Route |
+| 3 Antwort-Queue | Antwort sofort lokal nach der Regel aus `antwort_verbuchen` (Migration 010), XP aus der geteilten `xpFuerBewertung`, Nachschieben beim Öffnen von Übersicht, Lernen und Hinzufügen |
+| 4 Anlegen offline | Zweite Queue: ein neues Set geht **vor** seinen Karten raus, weil der Slug erst dort entsteht; ohne Netz endet der Erfolgsscreen bei „Offline gespeichert“ ohne „Jetzt lernen“ |
+
+**Prüfung:** `scripts/app-offline-audit.mjs` läuft mit Playwright auf dem
+react-native-web-Bund von `npx expo start --web --port 8083` und schaltet das
+Netz für alles außer der App-Hülle ab – ein Handy hat den Bundle auch lokal.
+20 von 20 Prüfungen bestehen, darunter die Gegenprobe gegen die echte API:
+nach dem Wiederkommen der Verbindung stehen die Stufen, die XP, die offline
+angelegte Karte und das offline angelegte Set im Web.
+
+Was der Lauf **nicht** prüft: das Gerät selbst. Der Flugmodus-Abnahme
+gegenüber ist der APK-Test noch schuldig — dieselben Schritte, aber mit
+echter Verbindungsunterbrechung und mit der Sprachausgabe.
+
+Die Grenze bleibt, wie oben beschrieben: die Schwierigkeits-Sortierung des
+Servers (`trainiertes Modell`) gibt es offline nicht, offline wird nach
+Stufe, Fälligkeit und `id` sortiert. Das ändert nicht, wer gelernt wird,
+sondern nur die Reihenfolge.
+
 ---
 
 ## Nachtrag vom 2026-10-04 — die Wortlisten sind gemessen statt gelesen
