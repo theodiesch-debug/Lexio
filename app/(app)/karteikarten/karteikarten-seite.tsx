@@ -201,7 +201,29 @@ export default function KarteikartenSeite() {
       </div>
 
       {laden ? (
-        <div className={styles.skelett} />
+        <div className={styles.tabellenRahmen} aria-busy="true">
+          <span role="status" className={styles.nurVorlesen}>
+            Karteikarten werden geladen …
+          </span>
+          <div className={styles.skelettTabelle} aria-hidden="true">
+            <div className={styles.skelettKopfZeile}>
+              <span className={styles.skelettZelle} />
+              <span className={styles.skelettZelle} />
+              <span className={styles.skelettZelle} />
+              <span className={styles.skelettZelle} />
+              <span className={styles.skelettZelle} />
+            </div>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className={styles.skelettReihe}>
+                <span className={`${styles.skelettZelle} ${styles.skelettZelleBreit}`} />
+                <span className={styles.skelettZelle} />
+                <span className={styles.skelettZelle} />
+                <span className={styles.skelettZelle} />
+                <span className={`${styles.skelettZelle} ${styles.skelettZelleMittel}`} />
+              </div>
+            ))}
+          </div>
+        </div>
       ) : fehler ? (
         <p className={styles.fehler}>{fehler}</p>
       ) : gefiltert.length === 0 ? (

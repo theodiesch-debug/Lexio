@@ -307,12 +307,79 @@
     color: var(--terracotta);
 }
 
+/* ------------------------------------------------------------ Ladezustand */
+
 .skelett {
     height: 220px;
     border-radius: var(--radius);
     background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-highlight) 50%, var(--skeleton-base) 75%);
     background-size: 200% 100%;
     animation: pulse 1.2s ease-in-out infinite;
+}
+
+.skelettTabelle {
+    display: flex;
+    flex-direction: column;
+}
+
+.skelettKopfZeile,
+.skelettReihe {
+    display: grid;
+    grid-template-columns: 2.2fr 0.8fr 0.7fr 0.7fr 1.4fr;
+    gap: 0.8rem;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--line);
+}
+
+.skelettKopfZeile {
+    border-top: none;
+}
+
+.skelettReihe:first-of-type {
+    border-top: 1px solid var(--line);
+}
+
+.skelettZelle {
+    height: 0.9rem;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-highlight) 50%, var(--skeleton-base) 75%);
+    background-size: 200% 100%;
+    animation: pulse 1.2s ease-in-out infinite;
+}
+
+.skelettZelleBreit {
+    width: min(24ch, 88%);
+}
+
+.skelettZelleMittel {
+    width: min(16ch, 72%);
+}
+
+.nurVorlesen {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+    .skelettKopfZeile,
+    .skelettReihe {
+        grid-template-columns: 1.6fr 0.8fr 0.7fr;
+    }
+
+    .skelettKopfZeile span:nth-child(4),
+    .skelettKopfZeile span:nth-child(5),
+    .skelettReihe span:nth-child(4),
+    .skelettReihe span:nth-child(5) {
+        display: none;
+    }
 }
 
 /* ------------------------------------------------------------- Mobil */

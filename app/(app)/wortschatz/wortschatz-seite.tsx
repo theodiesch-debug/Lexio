@@ -111,7 +111,17 @@ export default function WortschatzSeite() {
       </div>
 
       {laden ? (
-        <div className={styles.skelett} />
+        <ul className={styles.liste} aria-busy="true">
+          <span role="status" className={styles.nurVorlesen}>
+            Wortschatz wird geladen …
+          </span>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <li key={i} className={styles.skelettZeile} aria-hidden="true">
+              <span className={styles.skelettTextKurz} />
+              <span className={styles.skelettTextLang} />
+            </li>
+          ))}
+        </ul>
       ) : fehler ? (
         <p className={styles.fehler}>{fehler}</p>
       ) : gefiltert.length === 0 ? (

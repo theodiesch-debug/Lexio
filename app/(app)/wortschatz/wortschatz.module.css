@@ -223,6 +223,48 @@
     animation: pulse 1.2s ease-in-out infinite;
 }
 
+.skelettZeile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid var(--line);
+}
+
+.skelettZeile:last-child {
+    border-bottom: none;
+}
+
+.skelettTextKurz,
+.skelettTextLang {
+    height: 0.95rem;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-highlight) 50%, var(--skeleton-base) 75%);
+    background-size: 200% 100%;
+    animation: pulse 1.2s ease-in-out infinite;
+}
+
+.skelettTextKurz {
+    width: min(18ch, 58%);
+}
+
+.skelettTextLang {
+    width: min(36ch, 86%);
+    margin-top: 0.25rem;
+}
+
+.nurVorlesen {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
 @media (max-width: 560px) {
     .zeile {
         grid-template-columns: 1fr;
