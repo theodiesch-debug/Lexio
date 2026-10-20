@@ -180,6 +180,14 @@ export default function Einstellungen() {
         });
     }
 
+    function vorlesenAlleUmschalten(vorlesenAlle: boolean) {
+        setTon((alt) => {
+            const neu = { ...alt, vorlesenAlle };
+            setzeTon(neu);
+            return neu;
+        });
+    }
+
     function lautstaerkeWaehlen(lautstaerke: TonStand["lautstaerke"]) {
         setTon((alt) => {
             const neu = { ...alt, lautstaerke };
@@ -270,7 +278,8 @@ export default function Einstellungen() {
                     <div className="töne">
                         <div>
                             <p className="unterüberschrift-töne">
-                                Das Vorlesen der Karten im Lernmodus spricht und ist laut.
+                                Der Lautsprecher auf der Karte spricht die Antwort vor, wenn du
+                                ihn drückst.
                             </p>
                         </div>
                         <label className="switch2">
@@ -283,6 +292,32 @@ export default function Einstellungen() {
                             <span className="slider" />
                         </label>
                     </div>
+
+                    {/*
+                     * „Alle Karten vorlesen" – der Schalter, auf den die
+                     * Lernseite hört. Er steht nur, wenn überhaupt Töne an
+                     * sind: ein ausgeschalteter Schalter würde etwas
+                     * versprechen, das die Karte nicht hält.
+                     */}
+                    {ton.an ? (
+                        <div className="töne">
+                            <div>
+                                <p className="unterüberschrift-töne">
+                                    Jede Antwort wird beim Aufdecken automatisch vorgelesen – auch
+                                    ohne Lautsprecherdruck. Aus ist die Vorgabe.
+                                </p>
+                            </div>
+                            <label className="switch2">
+                                <input
+                                    id="tonAlle"
+                                    type="checkbox"
+                                    checked={ton.vorlesenAlle}
+                                    onChange={(e) => vorlesenAlleUmschalten(e.target.checked)}
+                                />
+                                <span className="slider" />
+                            </label>
+                        </div>
+                    ) : null}
 
                     <label className="überschrift-tonstärke" htmlFor="tonstärke">
                         Ton Lautstärke

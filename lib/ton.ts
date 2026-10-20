@@ -25,14 +25,24 @@ export const TON_SPEICHER = "lexio.ton.v1";
 export type TonStand = {
   /** Schema-Version. Eine alte, unbekannte Version wird verworfen. */
   v: 1;
-  /** Töne an: die Lernseite spricht, wenn jemand auf den Lautsprecher tippt. */
+  /** Töne an: der Lautsprecher auf der Karte spricht, wenn man drückt. */
   an: boolean;
+  /**
+   * Alle Karten vorlesen: die Antwort wird beim Aufdecken automatisch
+   * vorgesprochen, ohne dass man den Lautsprecher drückt.
+   *
+   * Vorgabe ist AUS. Wer eine Fremdsprache hört, ohne danach gefragt zu
+   * haben, verliert beim Lesen die Spur – und das Publikum, das mit
+   * Kopfhörern am Bahnhof lernt, möchte das ausdrücklich steuern. Wer es
+   * einschaltet, bekommt genau das Verhalten, das es verspricht.
+   */
+  vorlesenAlle: boolean;
   /** Wie laut spreche spricht. */
   lautstaerke: Lautstaerke;
 };
 
 /** Der Standard, wenn nichts gespeichert ist: Töne an, normale Lautstärke. */
-const VORGABE: TonStand = { v: 1, an: true, lautstaerke: "normal" };
+const VORGABE: TonStand = { v: 1, an: true, vorlesenAlle: false, lautstaerke: "normal" };
 
 /** Fachlich laut werden darf nur bis SpeechSynthesis (Maximalwert 1). */
 export const LAUTSTÄRKE_VOLUMEN: Record<Lautstaerke, number> = {
@@ -65,7 +75,13 @@ export function liesTon(): TonStand {
       wert.lautstaerke === "laut"
         ? wert.lautstaerke
         : "normal";
-    return { v: 1, an: wert.an !== false, lautstaerke };
+    return {
+      v: 1,
+      an: wert.an !== false,
+      // Fehlt das Feld (alter Speicher), ist es aus – siehe Typeintrag.
+      vorlesenAlle: wert.vorlesenAlle === true,
+      lautstaerke,
+    };
   } catch {
     // Kaputter Eintrag (Handeingetragen, andere App-Version): wegwerfen.
     return VORGABE;

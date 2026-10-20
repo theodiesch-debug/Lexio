@@ -365,6 +365,11 @@ export default function LernenSeite({
      *
      * Zweiter Klick waehrend des Sprechens bricht ab. Sonst gibt es zwei
      * Wege zum Stoppen, und der ungedachte laeuft weiter.
+     *
+     * `unterbrechen` entscheidet, ob ein laufendes Sprechen abgebrochen
+     * wird. Der Lautsprecher auf der Karte unterbricht (er ist ein Schalter);
+     * das automatische Vorlesen beim Aufdecken nicht – dort wuerde ein
+     * laufender Satz abgerissen, wenn die Karte zufaellig gerade noch sprach.
      */
     const tonZeitueber = useRef<number | null>(null);
 
@@ -375,36 +380,42 @@ export default function LernenSeite({
         }
     };
 
-    const vorlesen = useCallback(() => {
-        if (!karte) return;
-        if (!tonStand.an) return;
-        if (spricht) {
-            stoppe();
-            setSpricht(false);
-            return;
-        }
-        const teile = [karte.antwort, karte.beispielsatz ?? ""];
-        if (
-            !spreche(
-                teile,
-                set?.sprache.code ?? null,
-                () => setSpricht(false),
-                LAUTSTÄRKE_VOLUMEN[tonStand.lautstaerke],
+    const sprichKarte = useCallback(
+        (unterbrechen: boolean) => {
+            if (!karte) return;
+            if (!tonStand.an) return;
+            if (spricht) {
+                if (!unterbrechen) return;
+                stoppe();
+                setSpricht(false);
+                return;
+            }
+            const teile = [karte.antwort, karte.beispielsatz ?? ""];
+            if (
+                !spreche(
+                    teile,
+                    set?.sprache.code ?? null,
+                    () => setSpricht(false),
+                    LAUTSTÄRKE_VOLUMEN[tonStand.lautstaerke],
+                )
             )
-        )
-            return;
-        setSpricht(true);
-        /*
-         * `onend` meldet das echte Ende in den meisten Browsern; die
-         * Obergrenze ist der Rest fuer die, die es verschlucken (siehe
-         * spreche). 30 Sekunden koennen nicht verfrueh abbrechen, sie
-         * raeumen nur ein haengendes Icon ab. Der Timer wird beim naechsten
-         * Sprechen und beim Stoppen geloescht, damit er keine fruehere
-         * Runde ausbremst.
-         */
-        tonTimerRaumen();
-        tonZeitueber.current = window.setTimeout(() => setSpricht(false), 30000);
-    }, [karte, set, spricht, tonStand.an, tonStand.lautstaerke]);
+                return;
+            setSpricht(true);
+            /*
+             * `onend` meldet das echte Ende in den meisten Browsern; die
+             * Obergrenze ist der Rest fuer die, die es verschlucken (siehe
+             * spreche). 30 Sekunden koennen nicht verfrueh abbrechen, sie
+             * raeumen nur ein haengendes Icon ab. Der Timer wird beim naechsten
+             * Sprechen und beim Stoppen geloescht, damit er keine fruehere
+             * Runde ausbremst.
+             */
+            tonTimerRaumen();
+            tonZeitueber.current = window.setTimeout(() => setSpricht(false), 30000);
+        },
+        [karte, set, spricht, tonStand.an, tonStand.lautstaerke],
+    );
+
+    const vorlesen = useCallback(() => sprichKarte(true), [sprichKarte]);
 
     /*
      * Das Abbrechen haengt an den EREIGNISSEN, nicht an den Werten: Karte
@@ -418,10 +429,24 @@ export default function LernenSeite({
         stoppe();
     }, []);
 
-    /** Umdrehen: die Karte wechselt die Seite, also auch die Stimme. */
-    const umdrehen = useCallback(() => {
+    /*
+     * Aufdecken und Verdecken. Die Karte weiß die Seite nicht selbst: sie
+     * wechselt, wenn der Nutzer sie antippt, mit der Leertaste oder über den
+     * Knopf unten. Alle drei Wege gehen durch diese zwei Funktionen, damit
+     * „alle Karten vorlesen" an EINER Stelle hängt und nicht an drei.
+     *
+     * Beim Aufdecken wird nicht unterbrochen: `sprichKarte(false)` lässt
+     * einen laufenden Satz zu Ende sprechen, statt ihn abzurissen, wenn die
+     * Karte zufällig noch sprach.
+     */
+    const aufdecken = useCallback(() => {
+        setAufgedeckt(true);
+        if (tonStand.vorlesenAlle) sprichKarte(false);
+    }, [sprichKarte, tonStand.vorlesenAlle]);
+
+    const verdecken = useCallback(() => {
         tonAnhalten();
-        setAufgedeckt((a) => !a);
+        setAufgedeckt(false);
     }, [tonAnhalten]);
 
     /** Aus der Bilanz abgeleitet, damit Anzeige und Zaehler nicht
@@ -674,7 +699,8 @@ export default function LernenSeite({
 
             if (e.code === "Space" || e.code === "Enter") {
                 e.preventDefault();
-                setAufgedeckt((a) => !a);
+                if (aufgedeckt) verdecken();
+                else aufdecken();
                 return;
             }
             if (!aufgedeckt) return;
@@ -694,7 +720,7 @@ export default function LernenSeite({
 
         window.addEventListener("keydown", aufTaste);
         return () => window.removeEventListener("keydown", aufTaste);
-    }, [laden, fehler, fertig, aufgedeckt, bewerten]);
+    }, [laden, fehler, fertig, aufgedeckt, bewerten, aufdecken, verdecken]);
 
     if (laden) {
         return (
@@ -1139,7 +1165,7 @@ if (karten.length === 0) {
                         quaelModus ? styles.karteQuael : ""
                     }`}
                     style={farbe ? ({ ["--kartenFarbe" as string]: farbe } as React.CSSProperties) : undefined}
-                    onClick={umdrehen}
+                    onClick={aufgedeckt ? verdecken : aufdecken}
                     aria-label={aufgedeckt ? "Antwort verbergen" : "Antwort aufdecken"}
                     aria-pressed={aufgedeckt}
                 >
@@ -1396,7 +1422,7 @@ if (karten.length === 0) {
                         ))}
                     </div>
                 ) : (
-                    <button type="button" className={styles.aufdecken} onClick={() => setAufgedeckt(true)}>
+                    <button type="button" className={styles.aufdecken} onClick={aufdecken}>
                         Antwort aufdecken
                     </button>
                 )}
