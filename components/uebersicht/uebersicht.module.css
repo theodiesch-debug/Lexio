@@ -8,6 +8,53 @@
     gap: clamp(1.25rem, 3vw, 2rem);
 }
 
+/* ---------------------------------------------------------- Aufblenden */
+
+/*
+ * Die drei Einstiege oben – Begruessung, Karte, Quael-Banner, Test-Banner –
+ * kommen von links herein, in der Reihenfolge, in der man sie liest. Nur
+ * translate und opacity: das Layout steht von Anfang an, nichts springt,
+ * und wer `prefers-reduced-motion` gesetzt hat, bekommt den Endzustand
+ * sofort (der globale Schutz in styles/global.css kuerzt jedes Keyframe
+ * auf 0.01 ms – `both` haelt dann den sichtbaren Endzustand).
+ *
+ * `--reinVersatz` stammt aus dem JSX; ohne die Variable beginnt die
+ * Animation sofort.
+ */
+@keyframes rein {
+    from {
+        opacity: 0;
+        transform: translateX(-26px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.rein {
+    animation: rein 520ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    animation-delay: var(--reinVersatz, 0ms);
+}
+
+/* Die Kacheln des Rasters dürfen nur auftauchen, nicht ausrutschen – zwanzig
+   Kacheln, die nach rechts fahren, wuerden die Seite unruhig machen. */
+@keyframes auftauchen {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.kachelEingang {
+    animation: auftauchen 420ms ease both;
+    animation-delay: min(var(--kachelVersatz, 0ms), 360ms);
+}
+
 /* ------------------------------------------------------------- Begruessung */
 
 .begruessung {
@@ -597,7 +644,54 @@
 /* ---------------------------------------------------------------- Zustand */
 
 .skelett {
+    aspect-ratio: 1 / 1;
     border-radius: var(--radius);
+    background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-highlight) 50%, var(--skeleton-base) 75%);
+    background-size: 200% 100%;
+    animation: pulse 1.2s ease-in-out infinite;
+}
+
+/* Die obere Zone, solange Sets und Profil noch unterwegs sind: dieselben
+   Formen wie danach, damit beim Eintreffen der Daten nichts einspringt.
+   Die Balken sind bewusst ungleich breit – gleiche Balken laesen wie ein
+   Formularfeld aussehen, ungleiche wie Text, der noch nicht da ist. */
+.skelettZeile {
+    height: 1.05em;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-highlight) 50%, var(--skeleton-base) 75%);
+    background-size: 200% 100%;
+    animation: pulse 1.2s ease-in-out infinite;
+}
+
+.skelettZeileLang {
+    width: min(30ch, 72%);
+}
+
+.skelettZeileKurz {
+    width: min(18ch, 46%);
+    margin-top: 0.6rem;
+}
+
+.skelettPille {
+    display: inline-block;
+    width: 88px;
+    height: 34px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-highlight) 50%, var(--skeleton-base) 75%);
+    background-size: 200% 100%;
+    animation: pulse 1.2s ease-in-out infinite;
+}
+
+.skelettPilleBreit {
+    width: 118px;
+}
+
+/* Platzhalter fuer das Quael-Banner, das erst mit den Daten existiert.
+   Ohne ihn faellt der Abschnitt nach dem Laden um eine ganze Zeile nach
+   unten – genau der Sprung, den ein Skelett verhindern soll. */
+.skelettBanner {
+    min-height: 96px;
+    border-radius: 18px;
     background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-highlight) 50%, var(--skeleton-base) 75%);
     background-size: 200% 100%;
     animation: pulse 1.2s ease-in-out infinite;
@@ -718,6 +812,12 @@
     justify-content: center;
     background: rgba(5, 10, 14, 0.6);
     padding: 1.25rem;
+    animation: schleierRein 160ms ease both;
+}
+
+@keyframes schleierRein {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 .loeschDialog {
@@ -732,6 +832,20 @@
     flex-direction: column;
     align-items: center;
     gap: 0.8rem;
+    /* Kommt aus derselben Richtung wie die Kachel, die ihn ausgeloest hat,
+       bleibt aber unter der Hand: 200 ms, ein Hauch Aufzoomen. */
+    animation: dialogRein 200ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@keyframes dialogRein {
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 /* Siehe .endeZeichen im Lernmodul: das SVG misst sich an 1em, also

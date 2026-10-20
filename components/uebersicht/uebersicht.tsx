@@ -190,14 +190,24 @@ export default function Uebersicht() {
 
   return (
     <div className={styles.seite}>
-      <header className={styles.begruessung}>
+      {/*
+       * Die vier Bloecke oben laufen nacheinander von links herein
+       * (`.rein` in CSS, Versatz ueber --reinVersatz): Begruessung, Karte,
+       * Quael-Banner, Test-Banner. Die Reihenfolge folgt dem Lesefluss,
+       * nicht der Dateianordnung – wer die Seite oeffnet, soll erst
+       * begruessungs-, dann handlungsorientiert blicken.
+       */}
+      <header
+        className={`${styles.begruessung} ${styles.rein}`}
+        style={{ ["--reinVersatz" as string]: "0ms" } as React.CSSProperties}
+      >
         <div className={styles.begruessungText}>
           <h1 className={styles.begruessungHallo}>
             {profil ? `Hallo ${profil.vorname},` : "Hallo,"}
           </h1>
           <p className={styles.begruessungUnter}>Schön, dass du wieder da bist!</p>
         </div>
-        {profil && (
+        {profil ? (
           <div className={styles.abzeichen}>
             <span className={styles.abzeichenEintrag}>
               <i className="fa-solid fa-bolt" aria-hidden="true" />
@@ -208,13 +218,35 @@ export default function Uebersicht() {
               {profil.streak} {profil.streak === 1 ? "Tag" : "Tage"} Streak
             </span>
           </div>
-        )}
+        ) : laden ? (
+          <div className={styles.abzeichen} aria-hidden="true">
+            <span className={`${styles.skelettPille} ${styles.skelettPilleBreit}`} />
+            <span className={styles.skelettPille} />
+          </div>
+        ) : null}
       </header>
 
-      <section className={styles.karte}>
+      <section
+        className={`${styles.karte} ${styles.rein}`}
+        style={{ ["--reinVersatz" as string]: "80ms" } as React.CSSProperties}
+      >
         <div className={styles.karteText}>
           <h2 className={styles.karteTitel}>Karteikarten</h2>
-          <p className={styles.karteText2}>{lernText}</p>
+          {/*
+           * Solange Sets und Profil unterwegs sind, steht hier kein Text:
+           * `lernText` wuerde aus dem leeren Zustand „Lege dein erstes Set
+           * an" zaehlen – eine Anweisung an jemanden, der noch gar nicht
+           * weiss, ob er Sets hat. Zwei Balken mit der spaeteren Zeilenlaenge
+           * halten die Flaeche, bis die Zahl da ist.
+           */}
+          {laden ? (
+            <div aria-hidden="true">
+              <div className={`${styles.skelettZeile} ${styles.skelettZeileLang}`} />
+              <div className={`${styles.skelettZeile} ${styles.skelettZeileKurz}`} />
+            </div>
+          ) : (
+            <p className={styles.karteText2}>{lernText}</p>
+          )}
         </div>
         <div className={styles.karteAktion}>
           <button
@@ -236,31 +268,45 @@ export default function Uebersicht() {
        * schon Fehler hatte – wer noch keinen Fehler gemacht hatte, sah ihn nie.
        * Er steht jetzt auf der Uebersicht, sobald es Quael-Woerter gibt, und
        * fuehrt direkt in eine Runde mit dem Set, in dem die meisten liegen.
+       *
+       * Bis die Daten da sind, steht dort dieselbe Form als Skelett – sonst
+       * schiebt sich der Banner spaeter um eine ganze Zeile nach unten.
        */}
-      {quaelSet && (
-        <section className={`${styles.banner} ${styles.bannerQuael}`}>
-          <span className={styles.bannerSymbol} aria-hidden="true">
-            <IconFlamme />
-          </span>
-          <div className={styles.bannerText}>
-            <h2 className={styles.bannerTitel}>Quäl-Wörter</h2>
-            <p className={styles.bannerText2}>
-              {quaelGesamt === 1 ? "Ein Wort" : `${quaelGesamt} Wörter`} hast du dir
-              noch nicht gemerkt. Eine kurze Runde nur mit diesen Wörtern holt sie
-              zurück.
-            </p>
-          </div>
-          <div className={styles.bannerAktion}>
-            <button
-              type="button"
-              className={styles.bannerKnopf}
-              onClick={() => router.push(`/lernen/${quaelSet.id}?modus=quaelen`)}
-            >
-              <IconFlamme aria-hidden="true" />
-              Quäl-Wörter üben
-            </button>
-          </div>
-        </section>
+      {laden ? (
+        <div
+          className={`${styles.skelettBanner} ${styles.rein}`}
+          style={{ ["--reinVersatz" as string]: "160ms" } as React.CSSProperties}
+          aria-hidden="true"
+        />
+      ) : (
+        quaelSet && (
+          <section
+            className={`${styles.banner} ${styles.bannerQuael} ${styles.rein}`}
+            style={{ ["--reinVersatz" as string]: "0ms" } as React.CSSProperties}
+          >
+            <span className={styles.bannerSymbol} aria-hidden="true">
+              <IconFlamme />
+            </span>
+            <div className={styles.bannerText}>
+              <h2 className={styles.bannerTitel}>Quäl-Wörter</h2>
+              <p className={styles.bannerText2}>
+                {quaelGesamt === 1 ? "Ein Wort" : `${quaelGesamt} Wörter`} hast du dir
+                noch nicht gemerkt. Eine kurze Runde nur mit diesen Wörtern holt sie
+                zurück.
+              </p>
+            </div>
+            <div className={styles.bannerAktion}>
+              <button
+                type="button"
+                className={styles.bannerKnopf}
+                onClick={() => router.push(`/lernen/${quaelSet.id}?modus=quaelen`)}
+              >
+                <IconFlamme aria-hidden="true" />
+                Quäl-Wörter üben
+              </button>
+            </div>
+          </section>
+        )
       )}
 
       {/*
@@ -270,7 +316,10 @@ export default function Uebersicht() {
        * dort gibt es dieselbe Mechanik ohne Anmeldungs-Werbung, dafuer am Ende
        * ein Set aus den Woertern, die man nicht kannte.
        */}
-      <section className={styles.banner}>
+      <section
+        className={`${styles.banner} ${styles.rein}`}
+        style={{ ["--reinVersatz" as string]: "240ms" } as React.CSSProperties}
+      >
         <span className={styles.bannerSymbol} aria-hidden="true">
           <i className="fa-solid fa-clipboard-question" />
         </span>
@@ -293,11 +342,14 @@ export default function Uebersicht() {
         </div>
       </section>
 
-      <section className={styles.abschnitt}>
+      <section
+        className={`${styles.abschnitt} ${styles.rein}`}
+        style={{ ["--reinVersatz" as string]: "320ms" } as React.CSSProperties}
+      >
         <div className={styles.abschnittKopf}>
           <h2 className={styles.abschnittTitel}>Deine Sprachen</h2>
           <span className={styles.abschnittHinweis}>
-            {sets.length} {sets.length === 1 ? "Set" : "Sets"}
+            {laden ? "…" : `${sets.length} ${sets.length === 1 ? "Set" : "Sets"}`}
           </span>
         </div>
 
@@ -324,14 +376,14 @@ export default function Uebersicht() {
           <div className={styles.raster}>
             <button
               type="button"
-              className={styles.neuKachel}
+              className={`${styles.neuKachel} ${styles.kachelEingang}`}
               onClick={() => router.push("/karteikarten-hinzufuegen")}
             >
               <i className="fa-solid fa-plus" aria-hidden="true" />
               Neues Set
             </button>
 
-            {sets.map((set) => {
+            {sets.map((set, kachelIndex) => {
               const farbe = farbeVonSprache(set.sprache);
               /* Ein Set ohne Karten hat Level 0 – das waere eine Zahl, die
                  nichts bedeutet, deshalb steht dort "keine Karten" und die
@@ -341,11 +393,15 @@ export default function Uebersicht() {
               return (
                 <div
                   key={set.id}
-                  className={styles.kachel}
+                  className={`${styles.kachel} ${styles.kachelEingang}`}
                   style={
                     {
                       backgroundColor: farbe.flaeche,
                       ["--kachelAkzent" as string]: farbe.akzent,
+                      /* Erste Kacheln nacheinander, ab der neunten alle
+                         gleichzeitig – sonst waere das Erscheinen einer
+                         langen Liste spaeter als der Nutzer. */
+                      ["--kachelVersatz" as string]: `${Math.min(kachelIndex, 8) * 45}ms`,
                     } as React.CSSProperties
                   }
                 >

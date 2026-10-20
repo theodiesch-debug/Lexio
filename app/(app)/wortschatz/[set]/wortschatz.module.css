@@ -481,8 +481,75 @@
 }
 
 /* Gesperrte Knöpfe sollen auch so aussehen, sonst liest man den Zustand
-   als „hat nichts getan". */
+   als „hat nichts getan“. */
 .exportKnopfe button:disabled {
     opacity: 0.6;
     cursor: wait;
+}
+
+/* ------------------------------------------------------------- Ladezustand */
+
+/*
+ * Solange die Vokabeln unterwegs sind, stand hier der Satz „Wird geladen …“
+ * auf einer leeren Seite – dann sprang der ganze Inhalt rein. Die Formen
+ * darunter sind dieselben, die danach erscheinen: Kopf, Filter-Pillen, sechs
+ * Zeilen der Liste. Der Sprung beim Eintreffen der Daten fällt damit weg.
+ */
+.skelett {
+    display: block;
+    border-radius: 8px;
+    background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-highlight) 50%, var(--skeleton-base) 75%);
+    background-size: 200% 100%;
+    animation: pulse 1.2s ease-in-out infinite;
+}
+
+.skelettTitel {
+    height: 2.2rem;
+    width: min(15ch, 72%);
+    border-radius: 12px;
+}
+
+.skelettUnter {
+    height: 0.9rem;
+    width: min(24ch, 55%);
+    margin-top: 0.5rem;
+}
+
+.skelettPille {
+    height: 44px;
+    width: 116px;
+    border-radius: 999px;
+}
+
+.skelettPilleZwei {
+    width: 98px;
+}
+
+.skelettPilleDrei {
+    width: 124px;
+}
+
+.skelettBegriff {
+    height: 1em;
+    width: min(20ch, 62%);
+}
+
+.skelettAntwort {
+    height: 0.9em;
+    width: min(34ch, 84%);
+    margin-top: 0.45rem;
+    border-radius: 999px;
+}
+
+/* Der Satz für Vorlesesoftware: die Balken selbst sind aria-hidden. */
+.nurVorlesen {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
 }

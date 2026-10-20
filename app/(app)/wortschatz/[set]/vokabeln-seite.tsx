@@ -183,7 +183,36 @@ export default function VokabelnSeite({ setSlug }: { setSlug: string }) {
   }, [setSlug, anlass]);
 
   if (laden) {
-    return <div className={styles.spalte}>Wird geladen …</div>;
+    /*
+     * Skelett statt Satz: dieselben Formen wie danach (Kopf, Filterpillen,
+     * sechs Listenzeilen), damit beim Eintreffen der Daten nichts einspringt.
+     * `aria-busy` meldet dem Screenreader den Ladezustand, die Balken selbst
+     * sind ausgeblendet – sechs halbleere Kästen vorzulesen hilft niemandem.
+     */
+    return (
+      <div className={styles.spalte} aria-busy="true">
+        <span role="status" className={styles.nurVorlesen}>
+          Wird geladen …
+        </span>
+        <div className={styles.kopf} aria-hidden="true">
+          <div className={`${styles.skelett} ${styles.skelettTitel}`} />
+          <div className={`${styles.skelett} ${styles.skelettUnter}`} />
+        </div>
+        <div className={styles.filterZeile} aria-hidden="true">
+          <span className={`${styles.skelett} ${styles.skelettPille}`} />
+          <span className={`${styles.skelett} ${styles.skelettPille} ${styles.skelettPilleZwei}`} />
+          <span className={`${styles.skelett} ${styles.skelettPille} ${styles.skelettPilleDrei}`} />
+        </div>
+        <div className={styles.vokabelListe} aria-hidden="true">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className={styles.vokabelZeile}>
+              <span className={`${styles.skelett} ${styles.skelettBegriff}`} />
+              <span className={`${styles.skelett} ${styles.skelettAntwort}`} />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (fehler) {
