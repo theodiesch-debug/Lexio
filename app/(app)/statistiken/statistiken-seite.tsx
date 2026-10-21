@@ -2,16 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-/*
- * Zentraler fetch statt eigener Hilfsfunktion.
- *
- * Das lokale `holeJson` hier war fast gleichnamig mit dem aus
- * lib/api-client, aber ohne dessen wichtigste Eigenschaft: bei 401
- * weiterleiten. Eine abgelaufene Session fuehrte also zu drei leeren
- * Diagrammen und der Zahl "0 XP" – die Seite sah aus, als waere nichts
- * gelernt worden, statt zur Anmeldung zu fuehren. Der Aufrufer
- * uebergibt einfach seinen Ersatzwert als Fallback.
- */
 import { holeJson } from "@/lib/api-client";
 import { TAGESZIEL_XP } from "@/lib/profil";
 import type { SprachStat, TagesXpTyp, WochenXpTyp } from "@/lib/types";
@@ -29,7 +19,7 @@ const WOCHENTAGE = [
 
 const LEERE_WOCHE: WochenXpTyp = { mo: 0, di: 0, mi: 0, do: 0, fr: 0, sa: 0, so: 0 };
 
-/** Statistiken – Mockup-Screen #7. */
+/** Statistiken – nach Muster „Schrittweise aufgebaut“. */
 export default function StatistikenSeite() {
   const router = useRouter();
 
@@ -63,10 +53,10 @@ export default function StatistikenSeite() {
   }, []);
 
   const kennzahlen = useMemo(() => {
-    const xpGesamt = sprachen.reduce((summe, s) => summe + (s.xp ?? 0), 0);
-    const gelernt = sprachen.reduce((summe, s) => summe + (s.gelernt ?? 0), 0);
-    const total = sprachen.reduce((summe, s) => summe + (s.total ?? 0), 0);
-    const xpWoche = WOCHENTAGE.reduce((summe, t) => summe + (woche[t.key] ?? 0), 0);
+    const xpGesamt = sprachen.reduce((sum, s) => sum + (s.xp ?? 0), 0);
+    const gelernt = sprachen.reduce((sum, s) => sum + (s.gelernt ?? 0), 0);
+    const total = sprachen.reduce((sum, s) => sum + (s.total ?? 0), 0);
+    const xpWoche = WOCHENTAGE.reduce((sum, t) => sum + (woche[t.key] ?? 0), 0);
     const besterTag = WOCHENTAGE.reduce(
       (best, t) => ((woche[t.key] ?? 0) > (woche[best.key] ?? 0) ? t : best),
       WOCHENTAGE[0],
@@ -88,37 +78,61 @@ export default function StatistikenSeite() {
 
   return (
     <div className={styles.seite}>
-      <header className={styles.kopf}>
+      <header
+        className={`${styles.kopf} ${styles.rein}`}
+        style={{ ["--reinVersatz" as string]: "0ms" } as React.CSSProperties}
+      >
         <h1 className={styles.titel}>Statistiken</h1>
         <p className={styles.untertitel}>Dein Fortschritt im Überblick.</p>
       </header>
 
       {laden ? (
-        <div className={styles.skelett} />
+        <>
+          <span role="status" className={styles.nurVorlesen}>
+            Statistiken werden geladen …
+          </span>
+          <div className={styles.skelettKopfleiste} aria-hidden="true">
+            <div className={styles.skelettTitel} />
+            <div className={styles.skelettUnter} />
+          </div>
+          <div className={styles.skelettKacheln} aria-hidden="true">
+            <div className={styles.skelettKachel} />
+            <div className={styles.skelettKachel} />
+            <div className={styles.skelettKachel} />
+            <div className={styles.skelettKachel} />
+          </div>
+          <div className={styles.skelettBlock} aria-hidden="true" />
+          <div className={styles.skelettBlock} aria-hidden="true" />
+          <div className={styles.skelettBlock} aria-hidden="true" />
+        </>
       ) : (
         <>
-          {/* -------------------------------------------------- Kennzahlen */}
-          <section className={styles.kacheln} aria-label="Kennzahlen">
-            <div className={styles.kachel}>
-              <span className={styles.kachelZahl}>{kennzahlen.xpGesamt}</span>
-              <span className={styles.kachelLabel}>XP gesamt</span>
-            </div>
-            <div className={styles.kachel}>
-              <span className={styles.kachelZahl}>{kennzahlen.gelernt}</span>
-              <span className={styles.kachelLabel}>Karten gelernt</span>
-            </div>
-            <div className={styles.kachel}>
-              <span className={styles.kachelZahl}>{kennzahlen.quote}%</span>
-              <span className={styles.kachelLabel}>Quote</span>
-            </div>
-            <div className={styles.kachel}>
-              <span className={styles.kachelZahl}>{kennzahlen.xpWoche}</span>
-              <span className={styles.kachelLabel}>XP diese Woche</span>
-            </div>
+          <section
+            className={`${styles.kacheln} ${styles.rein}`}
+            aria-label="Kennzahlen"
+            style={{ ["--reinVersatz" as string]: "80ms" } as React.CSSProperties}
+          >
+            {[
+              { wert: kennzahlen.xpGesamt, label: "XP gesamt" },
+              { wert: kennzahlen.gelernt, label: "Karten gelernt" },
+              { wert: `${kennzahlen.quote}%`, label: "Quote" },
+              { wert: kennzahlen.xpWoche, label: "XP diese Woche" },
+            ].map((item, i) => (
+              <div
+                key={item.label}
+                className={`${styles.kachel} ${styles.kachelEingang}`}
+                style={{ ["--kachelVersatz" as string]: `${i * 40}ms` } as React.CSSProperties}
+              >
+                <span className={styles.kachelZahl}>{item.wert}</span>
+                <span className={styles.kachelLabel}>{item.label}</span>
+              </div>
+            ))}
           </section>
 
-          {/* ------------------------------------------------------ Heute */}
-          <section className={styles.block}>
+          <section
+            className={`${styles.block} ${styles.rein}`}
+            style={{ ["--reinVersatz" as string]: "160ms" } as React.CSSProperties}
+          >
             <h2 className={styles.blockTitel}>Heute</h2>
             <div className={styles.heute}>
               <div className={styles.heuteKopf}>
@@ -146,8 +160,10 @@ export default function StatistikenSeite() {
             </div>
           </section>
 
-          {/* ------------------------------------------------- Wochenbalken */}
-          <section className={styles.block}>
+          <section
+            className={`${styles.block} ${styles.rein}`}
+            style={{ ["--reinVersatz" as string]: "240ms" } as React.CSSProperties}
+          >
             <h2 className={styles.blockTitel}>Diese Woche</h2>
             <div className={styles.woche}>
               {WOCHENTAGE.map((tag) => {
@@ -172,11 +188,13 @@ export default function StatistikenSeite() {
             </p>
           </section>
 
-          {/* ---------------------------------------------- Pro Sprache */}
-          <section className={styles.block}>
-            <h2 className={styles.blockTitel}>Pro Sprache</h2>
+          <section
+            className={`${styles.block} ${styles.rein}`}
+            style={{ ["--reinVersatz" as string]: "320ms" } as React.CSSProperties}
+          >
+            <h2 className={styles.blockTitel}>Sprachen</h2>
             {sprachen.length === 0 ? (
-              <p className={styles.leer}>Noch keine Daten vorhanden.</p>
+              <p className={styles.leer}>Noch keine Lernaktivität in einer Sprache.</p>
             ) : (
               <ul className={styles.sprachen}>
                 {sprachen.map((s) => {
@@ -203,7 +221,7 @@ export default function StatistikenSeite() {
                         />
                       </div>
                       <span className={styles.spracheMeta}>
-                        {s.gelernt ?? 0} / {s.total ?? 0} gelernt · {quote}%
+                        {s.gelernt ?? 0} von {s.total} Karten gelernt · {quote} %
                       </span>
                     </li>
                   );

@@ -315,3 +315,122 @@
         padding: 0.8rem 0.4rem 0.6rem;
     }
 }
+
+/* ---------------------------------------------------------- Aufblenden */
+
+/*
+ * Nach Muster „Schrittweise aufgebaut“: Header, Kennzahlen, Heute,
+ * Wochenbalken, Sprachen – jeweils leicht versetzt von links/oben.
+ * Verwendet `both`, da global prefers-reduced-motion bereits greift.
+ */
+@keyframes rein {
+    from {
+        opacity: 0;
+        transform: translateX(-18px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.rein {
+    animation: rein 480ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    animation-delay: var(--reinVersatz, 0ms);
+}
+
+@keyframes auftauchen {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.kachelEingang {
+    animation: auftauchen 380ms ease both;
+    animation-delay: min(var(--kachelVersatz, 0ms), 280ms);
+}
+
+/* ------------------------------------------------------------ Ladezustand */
+
+.skelett {
+    height: 280px;
+    border-radius: var(--radius);
+    background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-highlight) 50%, var(--skeleton-base) 75%);
+    background-size: 200% 100%;
+    animation: pulse 1.2s ease-in-out infinite;
+}
+
+.skelettKopfleiste {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.skelettTitel {
+    height: 2rem;
+    width: min(16ch, 70%);
+    border-radius: 12px;
+    background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-highlight) 50%, var(--skeleton-base) 75%);
+    background-size: 200% 100%;
+    animation: pulse 1.2s ease-in-out infinite;
+}
+
+.skelettUnter {
+    height: 0.9rem;
+    width: min(26ch, 60%);
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-highlight) 50%, var(--skeleton-base) 75%);
+    background-size: 200% 100%;
+    animation: pulse 1.2s ease-in-out infinite;
+}
+
+.skelettKacheln {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: clamp(0.7rem, 2vw, 1rem);
+}
+
+.skelettKachel {
+    height: 96px;
+    border-radius: var(--radius);
+    background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-highlight) 50%, var(--skeleton-base) 75%);
+    background-size: 200% 100%;
+    animation: pulse 1.2s ease-in-out infinite;
+}
+
+.skelettBlock {
+    height: 150px;
+    border-radius: var(--radius);
+    background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-highlight) 50%, var(--skeleton-base) 75%);
+    background-size: 200% 100%;
+    animation: pulse 1.2s ease-in-out infinite;
+}
+
+.nurVorlesen {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+@media (max-width: 880px) {
+    .skelettKacheln {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 520px) {
+    .skelettKacheln {
+        grid-template-columns: 1fr;
+    }
+}
