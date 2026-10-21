@@ -267,11 +267,21 @@ export default function KarteikartenSeite() {
                   key={set.id}
                   className={styles.zeile}
                   onClick={() => router.push(`/lernen/${set.id}`)}
+                  style={
+                    {
+                      ["--zeilenFarbe" as string]: farbeVonSprache(set.sprache).flaeche,
+                    } as React.CSSProperties
+                  }
                 >
                   <th scope="row" className={styles.sprachZelle}>
                     <span
                       className={styles.punkt}
-                      style={{ backgroundColor: farbeVonSprache(set.sprache).flaeche }}
+                      style={
+                        {
+                          backgroundColor: farbeVonSprache(set.sprache).flaeche,
+                          ["--punktFarbe" as string]: farbeVonSprache(set.sprache).flaeche,
+                        } as React.CSSProperties
+                      }
                       aria-hidden="true"
                     />
                     <span className={styles.text}>

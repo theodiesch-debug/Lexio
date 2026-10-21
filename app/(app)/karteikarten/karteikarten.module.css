@@ -163,12 +163,13 @@
 .zeile {
     border-top: 1px solid var(--line);
     cursor: pointer;
-    transition: background-color 140ms ease;
+    transition: background-color 140ms ease, border-color 140ms ease;
 }
 
 .zeile:hover,
 .zeile:focus-visible {
-    background: var(--bg-elevated-2);
+    background: color-mix(in srgb, var(--zeilenFarbe, transparent) 12%, var(--bg-elevated-2));
+    border-color: color-mix(in srgb, var(--zeilenFarbe, var(--line)) 40%, var(--line));
     outline: none;
 }
 
@@ -190,6 +191,7 @@
     height: 10px;
     flex: 0 0 10px;
     border-radius: 50%;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--punktFarbe, var(--zeilenFarbe, currentColor)) 14%, transparent);
 }
 
 .text {
