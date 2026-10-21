@@ -50,6 +50,7 @@ import {
   setCachen,
   type KartenListe,
 } from "../../../lib/offline";
+import { lernzeitMerken } from "../../../lib/lernzeit";
 import { TON_STANDARD, tonLesen, type TonStand } from "../../../lib/ton";
 import { spreche, stoppe } from "../../../lib/vorlesen";
 
@@ -341,6 +342,7 @@ export default function Lernen() {
     if (streakWert !== undefined && streakWert !== null) {
       setStreak(streakWert);
     }
+    void lernzeitMerken();
     setLetzteAntwort({ kartenId: karteId, xp: xpErhalten });
 
     const schwerBleibt =
