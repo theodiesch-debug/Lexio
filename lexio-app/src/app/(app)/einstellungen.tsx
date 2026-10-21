@@ -35,6 +35,7 @@ import {
     erinnerungLesen,
     erinnerungSpeichern,
     erinnerungStellen,
+    erinnerungVorschlag,
     testmeldung,
     type Erinnerung,
 } from "@/lib/benachrichtigungen";
@@ -291,7 +292,21 @@ export default function Einstellungen() {
 
                 {erinnerung.aktiv ? (
                     <>
-                        <Text style={[styles.label, { color: farben.textSecondary }]}>Uhrzeit</Text>
+                        <View style={[styles.zeitLeiste, { alignItems: "center", justifyContent: "space-between", flexDirection: "row" }]}>
+                            <Text style={[styles.label, { color: farben.textSecondary, marginBottom: 0 }]}>Uhrzeit</Text>
+                            <Pressable
+                                disabled={erinnerungLaeuft}
+                                onPress={async () => {
+                                    const v = await erinnerungVorschlag();
+                                    await erinnerungAendern({ ...erinnerung, stunde: v.stunde, minute: v.minute });
+                                }}
+                                accessibilityRole="button"
+                                accessibilityLabel="Erinnerungszeit anhand deines Lernrhythmus vorschlagen"
+                                style={{ paddingVertical: 4, paddingHorizontal: 6 }}
+                            >
+                                <Text style={{ fontFamily: SANS.semibold, fontSize: 12, color: farben.gold }}>Empfohlen (deine Lernzeit)</Text>
+                            </Pressable>
+                        </View>
                         <View
                             style={[
                                 styles.zeitSegment,
@@ -321,15 +336,8 @@ export default function Einstellungen() {
                                     >
                                         <Text
                                             style={[
-                                                styles.segmentText,
-                                                {
-                                                    color: aktiv
-                                                        ? farben.ink
-                                                        : farben.textSecondary,
-                                                    fontFamily: aktiv
-                                                        ? SANS.semibold
-                                                        : SANS.medium,
-                                                },
+                                                styles.zeitText,
+                                                { color: aktiv ? "#15110b" : farben.textPrimary },
                                             ]}
                                         >
                                             {option.label}
@@ -338,6 +346,9 @@ export default function Einstellungen() {
                                 );
                             })}
                         </View>
+                        <Text style={[styles.hinweis, { color: farben.textMuted }]}>
+                            Je öfter du lernst, desto genauer wird die Empfehlung.
+                        </Text>
                     </>
                 ) : null}
 
@@ -607,6 +618,8 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
     },
+    zeitText: { fontFamily: SANS.semibold, fontSize: 14 },
+    zeitLeiste: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
     meldung: { fontFamily: SANS.medium, fontSize: 14 },
     trenner: { height: 1, marginVertical: ABSTAND.xs },
     about: { gap: 2 },

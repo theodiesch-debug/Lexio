@@ -14,12 +14,24 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
+import { lernzeitVorschlag } from "./lernzeit";
 
 export const KANAL_ID = "lexio-erinnerung";
 export const ERINNERUNG_SPEICHER = "lexio.erinnerung";
 
-/** Lexio-Gold – dieselbe Farbe wie der Hauptknopf (`--gold` im Web). */
 const AKZENT = "#e7b14a";
+
+function erinnerungstext(): string {
+  const varianten = [
+    `${TAGESZIEL_XP} XP sind dein Tagesziel – meist reichen 2 Minuten.`,
+    "Dein Tagesziel wartet – 2 Minuten reichen völlig.",
+    "Du hast heute noch Wörter offen – schnell eine Runde.",
+    "Nimm dir 2 Minuten für deinen Wortschatz.",
+    "Dein Lernstreak wartet – leg einfach los!",
+    "Zeit zu lernen – die kleinste Runde zählt.",
+  ];
+  return varianten[Math.floor(Math.random() * varianten.length)];
+}
 
 export type Erinnerung = {
   aktiv: boolean;
@@ -78,12 +90,13 @@ export async function erinnerungSpeichern(wert: Erinnerung): Promise<void> {
 async function kanalAnlegen(): Promise<void> {
   if (Platform.OS !== "android") return;
   await Notifications.setNotificationChannelAsync(KANAL_ID, {
-    name: "Tagesziel",
-    description: "Die tägliche Erinnerung an deine Lernrunde",
-    importance: Notifications.AndroidImportance.MAX,
-    vibrationPattern: [0, 250, 250, 250],
+    name: "Tägliche Erinnerung",
+    description: "Erinnerung an deine Lexio-Lernrunde",
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: [0, 300, 200, 300],
     lightColor: AKZENT,
     enableVibrate: true,
+    sound: "default",
   });
 }
 
@@ -103,9 +116,10 @@ async function eintragen(wert: Erinnerung): Promise<boolean> {
 
   await Notifications.scheduleNotificationAsync({
     content: {
-      title: "Zeit für eine Runde",
-      body: `${TAGESZIEL_XP} XP sind dein Tagesziel – meist sind zwei Minuten genug.`,
+      title: "Zeit zu lernen – Lexio",
+      body: erinnerungstext(),
       color: AKZENT,
+      sound: "default",
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DAILY,
@@ -156,9 +170,10 @@ export async function testmeldung(): Promise<boolean> {
     if (!(await berechtigungHolen())) return false;
     await Notifications.scheduleNotificationAsync({
     content: {
-      title: "Zeit für eine Runde",
-      body: `${TAGESZIEL_XP} XP sind dein Tagesziel – meist sind zwei Minuten genug.`,
+      title: "Zeit zu lernen – Lexio",
+      body: erinnerungstext(),
       color: AKZENT,
+      sound: "default",
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
@@ -167,4 +182,12 @@ export async function testmeldung(): Promise<boolean> {
     },
   });
   return true;
+}
+
+export async function erinnerungVorschlag(): Promise<Erinnerung> {
+  const vorschlag = await lernzeitVorschlag();
+  if (vorschlag) {
+    return { aktiv: false, stunde: vorschlag.stunde, minute: vorschlag.minute };
+  }
+  return { aktiv: false, stunde: 18, minute: 0 };
 }
