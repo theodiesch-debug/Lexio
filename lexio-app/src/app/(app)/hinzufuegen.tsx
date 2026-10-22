@@ -19,7 +19,6 @@ import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import { router } from "expo-router";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
-    ActivityIndicator,
     Image,
     Pressable,
     ScrollView,
@@ -36,7 +35,7 @@ import { Knopf } from "@/components/knopf";
 import { Skelett } from "@/components/zustand";
 import { SANS, SERIF } from "@/design/schrift";
 import { useDesign } from "@/design/theme";
-import { ABSTAND, KARTEN_TINTE, RADIUS } from "@/design/tokens";
+import { ABSTAND, KARTEN_TINTE, MASS, RADIUS } from "@/design/tokens";
 import { ApiFehler, holeJson, sendeJson } from "@/lib/api";
 import {
     listeAusCache,
@@ -1034,48 +1033,125 @@ export default function Hinzufuegen() {
                             </View>
                         ) : eingabeArt === "foto" ? (
                             <View style={styles.foto}>
-                                <Text style={[styles.label, { color: farben.textSecondary }]}>
-                                    Vokabeln aus einem Foto
-                                </Text>
-                                <Text style={[styles.hinweis, { color: farben.textMuted }]}>
-                                    Fotografiere dein Vokabelheft oder wähle ein Bild aus der
-                                    Galerie. Die Wörter werden erkannt und landen danach in der
-                                    normalen Liste – dort kannst du alles korrigieren.
-                                </Text>
+                                <View
+                                    style={[
+                                        styles.fotoFlaeche,
+                                        {
+                                            borderColor: farben.line,
+                                            backgroundColor: farben.inputBg,
+                                        },
+                                    ]}
+                                >
+                                    <View
+                                        style={[
+                                            styles.fotoEmblem,
+                                            {
+                                                backgroundColor: farben.champagnerSchein,
+                                                borderColor: farben.gold,
+                                            },
+                                        ]}
+                                    >
+                                        <FontAwesome6 name="camera" size={26} color={farben.gold} />
+                                    </View>
+                                    <Text
+                                        style={[styles.fotoTitel, { color: farben.textPrimary }]}
+                                    >
+                                        Vokabeln aus einem Foto
+                                    </Text>
+                                    <Text style={[styles.fotoHinweis, { color: farben.textMuted }]}>
+                                        Klar und gerade fotografiert liest die KI am saubersten.
+                                    </Text>
+                                </View>
 
                                 {bildUri ? (
-                                    <Image
-                                        source={{ uri: bildUri }}
-                                        style={[styles.vorschau, { borderColor: farben.line }]}
-                                        resizeMode="cover"
-                                        accessibilityLabel="Gewähltes Foto"
-                                    />
+                                    <View
+                                        style={[
+                                            styles.fotoVorschauRahmen,
+                                            {
+                                                borderColor: farben.line,
+                                                backgroundColor: farben.cardBg,
+                                            },
+                                        ]}
+                                    >
+                                        <Image
+                                            source={{ uri: bildUri }}
+                                            style={styles.vorschau}
+                                            resizeMode="cover"
+                                            accessibilityLabel="Gewähltes Foto"
+                                        />
+                                        <Text
+                                            style={[
+                                                styles.fotoVorschauText,
+                                                { color: farben.textMuted },
+                                            ]}
+                                        >
+                                            Vorschau – wird gerade gelesen
+                                        </Text>
+                                    </View>
                                 ) : null}
 
                                 <View style={styles.fotoKnoepfe}>
-                                    <Knopf
-                                        onPress={() => void fotoWaehlen("kamera")}
-                                        disabled={ocrLaedt}
-                                        style={styles.fotoKnopf}
-                                        accessibilityLabel="Foto machen"
+                                    <View
+                                        style={[
+                                            styles.fotoKnopf,
+                                            {
+                                                backgroundColor: farben.gold,
+                                                borderColor: farben.gold,
+                                            },
+                                        ]}
                                     >
-                                        <FontAwesome6 name="camera" size={15} color="#17110a" />
-                                        <Text style={[styles.knopfInhalt, { color: "#17110a" }]}>
-                                            Foto machen
-                                        </Text>
-                                    </Knopf>
-                                    <Knopf
-                                        variante="rand"
-                                        onPress={() => void fotoWaehlen("galerie")}
-                                        disabled={ocrLaedt}
-                                        style={styles.fotoKnopf}
-                                        accessibilityLabel="Bild wählen"
+                                        <Pressable
+                                            onPress={() => void fotoWaehlen("kamera")}
+                                            disabled={ocrLaedt}
+                                            accessibilityRole="button"
+                                            accessibilityLabel="Foto machen"
+                                            style={({ pressed }) => [
+                                                styles.fotoKnopfInnen,
+                                                { opacity: ocrLaedt ? 0.5 : pressed ? 0.85 : 1 },
+                                            ]}
+                                        >
+                                            <FontAwesome6 name="camera" size={15} color={farben.ink} />
+                                            <Text
+                                                style={[styles.knopfInhalt, { color: farben.ink }]}
+                                            >
+                                                Foto machen
+                                            </Text>
+                                        </Pressable>
+                                    </View>
+                                    <View
+                                        style={[
+                                            styles.fotoKnopf,
+                                            {
+                                                backgroundColor: farben.cardBg,
+                                                borderColor: farben.line,
+                                            },
+                                        ]}
                                     >
-                                        <FontAwesome6 name="image" size={15} color={farben.textPrimary} />
-                                        <Text style={[styles.knopfInhalt, { color: farben.textPrimary }]}>
-                                            Bild wählen
-                                        </Text>
-                                    </Knopf>
+                                        <Pressable
+                                            onPress={() => void fotoWaehlen("galerie")}
+                                            disabled={ocrLaedt}
+                                            accessibilityRole="button"
+                                            accessibilityLabel="Bild wählen"
+                                            style={({ pressed }) => [
+                                                styles.fotoKnopfInnen,
+                                                { opacity: ocrLaedt ? 0.5 : pressed ? 0.85 : 1 },
+                                            ]}
+                                        >
+                                            <FontAwesome6
+                                                name="image"
+                                                size={15}
+                                                color={farben.textPrimary}
+                                            />
+                                            <Text
+                                                style={[
+                                                    styles.knopfInhalt,
+                                                    { color: farben.textPrimary },
+                                                ]}
+                                            >
+                                                Bild wählen
+                                            </Text>
+                                        </Pressable>
+                                    </View>
                                 </View>
 
                                 {ocrLaedt ? (
@@ -1084,8 +1160,15 @@ export default function Hinzufuegen() {
                                         accessibilityLiveRegion="polite"
                                         accessibilityLabel="Foto wird gelesen"
                                     >
-                                        <ActivityIndicator color={farben.textSecondary} />
-                                        <Text style={[styles.hinweis, { color: farben.textMuted }]}>
+                                        <View
+                                            style={[
+                                                styles.fotoPuls,
+                                                { backgroundColor: farben.gold },
+                                            ]}
+                                        />
+                                        <Text
+                                            style={[styles.hinweis, { color: farben.textSecondary }]}
+                                        >
                                             Foto wird gelesen…
                                         </Text>
                                     </View>
@@ -1096,6 +1179,11 @@ export default function Hinzufuegen() {
                                         {ocrFehler}
                                     </Text>
                                 ) : null}
+
+                                <Text style={[styles.hinweis, { color: farben.textMuted }]}>
+                                    Die Wörter landen danach in der Liste zum Korrigieren.
+                                    Mehrere Seiten nach und nach.
+                                </Text>
                             </View>
                         ) : (
                             <>
@@ -1571,17 +1659,70 @@ const styles = StyleSheet.create({
     modusText: { fontSize: 14 },
     textblock: { gap: ABSTAND.md },
     foto: { gap: ABSTAND.md },
+    fotoFlaeche: {
+        alignItems: "center",
+        gap: ABSTAND.sm,
+        paddingVertical: ABSTAND.xl,
+        paddingHorizontal: ABSTAND.lg,
+        borderRadius: RADIUS.karte,
+        borderWidth: 1,
+        borderStyle: "dashed",
+    },
+    fotoEmblem: {
+        alignItems: "center",
+        justifyContent: "center",
+        width: 58,
+        height: 58,
+        borderRadius: RADIUS.pille,
+        borderWidth: 1,
+    },
+    fotoTitel: { fontFamily: SANS.bold, fontSize: 17, textAlign: "center" },
+    fotoHinweis: {
+        fontFamily: SANS.regular,
+        fontSize: 13,
+        lineHeight: 19,
+        textAlign: "center",
+    },
+    fotoVorschauRahmen: {
+        padding: ABSTAND.xs,
+        borderRadius: RADIUS.standard,
+        borderWidth: 1,
+    },
     vorschau: {
         width: "100%",
         height: 180,
         borderRadius: RADIUS.feld,
-        borderWidth: 1,
+    },
+    fotoVorschauText: {
+        fontFamily: SANS.regular,
+        fontSize: 12,
+        textAlign: "center",
+        marginTop: ABSTAND.xs,
     },
     fotoKnoepfe: { flexDirection: "row", gap: ABSTAND.sm },
-    fotoKnopf: { flex: 1 },
+    fotoKnopf: {
+        flex: 1,
+        borderRadius: RADIUS.klein,
+        borderWidth: 1,
+        overflow: "hidden",
+    },
+    fotoKnopfInnen: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: ABSTAND.sm,
+        minHeight: MASS.touch,
+        paddingHorizontal: ABSTAND.md,
+    },
+    fotoPuls: {
+        width: 9,
+        height: 9,
+        borderRadius: RADIUS.pille,
+    },
     ocrLaedt: {
         flexDirection: "row",
         alignItems: "center",
+        justifyContent: "center",
         gap: ABSTAND.sm,
     },
     pruefBanner: { padding: ABSTAND.md, borderWidth: 1 },

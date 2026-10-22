@@ -685,40 +685,240 @@
    kurz hin", Terrakotta bleibt der blockierende Fehler.
    ========================================================================== */
 
+/*
+ * Foto-Fläche.
+ *
+ * Ein ruhiger, edler Empfang statt eines nüchternen Kastens: warmer
+ * Champagner-Schein von oben, ein rundes Emblem, darunter Titel, ein
+ * leiser Hinweis und erst dann die zwei Wege. Die Hauptaktion ist gefüllt,
+ * die zweite bleibt leise – zwei gleich laute Knöpfe zwingen zum Lesen,
+ * ein klarer Vorrang nicht.
+ */
+.foto {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+}
+
+.fotoFlaeche {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 1.9rem 1.25rem 1.5rem;
+    border-radius: 18px;
+    border: 1px dashed var(--line);
+    background:
+        radial-gradient(
+            120% 90% at 50% 0%,
+            var(--champagner-schein) 0%,
+            transparent 62%
+        ),
+        var(--input-bg);
+    text-align: center;
+    box-sizing: border-box;
+    transition: border-color 200ms ease, background 200ms ease,
+        box-shadow 200ms ease, transform 200ms ease;
+}
+
+.fotoFlaeche:hover,
+.fotoFlaeche:focus-within {
+    border-color: rgba(231, 177, 74, 0.55);
+}
+
+/* Ziel-Zustand beim Ziehen eines Bildes: Gold, ein Hauch Schein und
+   minimales Anheben – die Fläche gibt sichtbar nach, bevor sie annimmt. */
+.fotoFlaecheZieht {
+    border-color: var(--gold);
+    border-style: solid;
+    box-shadow: 0 0 0 4px var(--champagner-schein);
+    transform: translateY(-2px);
+}
+
+.fotoEmblem {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    color: var(--gold);
+    background: var(--champagner-schein);
+    border: 1px solid rgba(231, 177, 74, 0.35);
+    box-shadow: var(--shadow-soft);
+}
+
+/* Das Kamera-Symbol im Emblem darf grosszügig stehen, das <svg> erbt die
+   Farbe und ist von Haus aus klein. */
+.fotoEmblem svg {
+    width: 27px;
+    height: 27px;
+}
+
+.fotoTitel {
+    color: var(--text-primary);
+    font-size: 1.02rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.fotoHinweis {
+    max-width: 34ch;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.fotoAktionen {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.6rem;
+    margin-top: 0.35rem;
+}
+
+/* Hauptweg: gefüllt, gold – die eine Sache, die man am ehesten tut. Text
+   in Tinte statt Weiss, sonst wäre Gold auf Gold nicht lesbar. */
+.fotoKnopfPrimaer,
+.fotoKnopfRuhig {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    min-height: var(--touch);
+    padding: 0.55rem 1.15rem;
+    box-sizing: border-box;
+    border-radius: 11px;
+    font-family: inherit;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 150ms ease, border-color 150ms ease,
+        color 150ms ease, transform 150ms ease;
+}
+
+.fotoKnopfPrimaer {
+    border: 1px solid var(--gold);
+    background: var(--gold);
+    color: var(--ink);
+}
+
+.fotoKnopfPrimaer:hover {
+    background: #f0bd5c;
+    border-color: #f0bd5c;
+}
+
+.fotoKnopfPrimaer:active {
+    transform: translateY(1px);
+}
+
+.fotoKnopfRuhig {
+    border: 1px solid var(--line);
+    background: var(--card-bg);
+    color: var(--text-primary);
+}
+
+.fotoKnopfRuhig:hover,
+.fotoFlaeche:focus-within .fotoKnopfRuhig {
+    border-color: var(--gold);
+    color: var(--gold);
+}
+
+.fotoKnopfPrimaer:focus-visible,
+.fotoKnopfRuhig:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+}
+
+/* Vorschau: gerahmt wie ein Abzug, mit einer feinen Goldhaarlinie oben –
+   Gesicht des erkannten Bildes, bevor die Liste erscheint. */
+.fotoVorschauRahmen {
+    margin: 0;
+    padding: 0.4rem;
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    background: var(--card-bg);
+    box-shadow: var(--shadow-card);
+}
+
+.fotoVorschauRahmen::before {
+    content: "";
+    display: block;
+    height: 1px;
+    margin: 0 0.5rem 0.4rem;
+    background: var(--gold-haarlinie);
+}
+
 .fotoVorschau {
     display: block;
     width: 100%;
     max-height: 320px;
     object-fit: contain;
     border-radius: 12px;
-    border: 1px solid var(--line);
     background: var(--input-bg);
 }
 
-/* Zwei Aktionen (Foto machen, Bild waehlen) nebeneinander; unter 30em
-   gestapelt, damit die Beschriftungen ohne Umbruch lesbar bleiben. */
-.fotoAktionen {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    flex-shrink: 0;
+.fotoVorschauText {
+    margin: 0.45rem 0 0.15rem;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    text-align: center;
 }
 
+/* Ladezeile mit pulsierendem Goldpunkt statt blossem Text. */
+.fotoLaedt {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.fotoPuls {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--gold);
+    animation: fotoPuls 1100ms ease-in-out infinite;
+}
+
+@keyframes fotoPuls {
+    0%,
+    100% {
+        opacity: 0.35;
+        transform: scale(0.8);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fotoPuls {
+        animation: none;
+        opacity: 1;
+    }
+
+    .fotoFlaecheZieht {
+        transform: none;
+    }
+}
+
+/* Unter 30em stehen die zwei Wege untereinander und teilen sich die
+   Breite – auf dem Handy tippt man nicht neben etwas. */
 @media (max-width: 30em) {
     .fotoAktionen {
         width: 100%;
     }
 
-    .fotoAktionen .dateiKnopf {
+    .fotoKnopfPrimaer,
+    .fotoKnopfRuhig {
         flex: 1;
     }
-}
-
-/* Ziel-Zustand beim Ziehen einer Bilddatei auf den Kasten. */
-.dateiKastenZieht {
-    border-color: var(--gold);
-    border-style: solid;
-    background: rgba(231, 177, 74, 0.08);
 }
 
 .pruefBanner {

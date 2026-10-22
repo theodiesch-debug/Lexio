@@ -1236,20 +1236,21 @@ export default function VokabelnHinzufuegenSeite() {
                     </div>
 
                     {eingabeArt === "foto" ? (
-                        <div className={styles.textblock}>
+                        <div className={styles.foto}>
                             {/*
-                             * Zwei Wege, wie in der App: einmal direkt
-                             * fotografieren, einmal ein vorhandenes Bild
-                             * waehlen. Zwei <input type="file">, die sich nur
-                             * in `capture` unterscheiden – auf dem Handy
-                             * oeffnet das erste die Kamera, das zweite die
-                             * Galerie. Auf dem Rechner sind beide derselbe
-                             * Dateidialog; dort traegt der Kasten zusaetzlich
-                             * Drag & Drop.
+                             * Eine Fläche für beide Wege, wie in der App:
+                             * einmal direkt fotografieren, einmal ein
+                             * vorhandenes Bild waehlen. Zwei
+                             * <input type="file">, die sich nur in `capture`
+                             * unterscheiden – auf dem Handy oeffnet das erste
+                             * die Kamera, das zweite die Galerie. Auf dem
+                             * Rechner sind beide derselbe Dateidialog; dort
+                             * nimmt die Fläche zusaetzlich ein Bild per Ziehen
+                             * und Ablegen an.
                              */}
                             <div
-                                className={`${styles.dateiKasten} ${
-                                    zieht ? styles.dateiKastenZieht : ""
+                                className={`${styles.fotoFlaeche} ${
+                                    zieht ? styles.fotoFlaecheZieht : ""
                                 }`}
                                 onDragOver={(e) => {
                                     e.preventDefault();
@@ -1286,39 +1287,47 @@ export default function VokabelnHinzufuegenSeite() {
                                         if (datei) void fotoLesen(datei);
                                     }}
                                 />
+
+                                <span className={styles.fotoEmblem} aria-hidden="true">
+                                    <IconKamera />
+                                </span>
+                                <span className={styles.fotoTitel}>
+                                    Vokabeln aus einem Foto
+                                </span>
+                                <span className={styles.fotoHinweis}>
+                                    Klar und gerade fotografiert liest die KI am saubersten.
+                                    {zieht ? " Bild hier loslassen." : ""}
+                                </span>
+
                                 <div className={styles.fotoAktionen}>
-                                    <label htmlFor="vokabel-foto" className={styles.dateiKnopf}>
+                                    <label htmlFor="vokabel-foto" className={styles.fotoKnopfPrimaer}>
                                         <IconKamera aria-hidden="true" />
                                         Foto machen
                                     </label>
-                                    <label htmlFor="vokabel-galerie" className={styles.dateiKnopf}>
+                                    <label htmlFor="vokabel-galerie" className={styles.fotoKnopfRuhig}>
                                         <IconBild aria-hidden="true" />
                                         Bild wählen
                                     </label>
                                 </div>
-                                <span className={styles.dateiText}>
-                                    <span className={styles.dateiTitel}>
-                                        Vokabeln aus einem Foto
-                                    </span>
-                                    <span className={styles.dateiHinweis}>
-                                        Seite fotografieren oder ein Bild aus der Galerie wählen – hier
-                                        auch per Ziehen und Ablegen. Die Wörter werden erkannt und
-                                        landen in der Liste zum Korrigieren.
-                                    </span>
-                                </span>
                             </div>
 
                             {bildUrl && (
-                                /* eslint-disable-next-line @next/next/no-img-element */
-                                <img
-                                    className={styles.fotoVorschau}
-                                    src={bildUrl}
-                                    alt="Gewähltes Foto"
-                                />
+                                <figure className={styles.fotoVorschauRahmen}>
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                        className={styles.fotoVorschau}
+                                        src={bildUrl}
+                                        alt="Gewähltes Foto"
+                                    />
+                                    <figcaption className={styles.fotoVorschauText}>
+                                        Vorschau – wird gerade gelesen
+                                    </figcaption>
+                                </figure>
                             )}
 
                             {ocrLaedt && (
-                                <p className={styles.textblockOk} role="status">
+                                <p className={styles.fotoLaedt} role="status">
+                                    <span className={styles.fotoPuls} aria-hidden="true" />
                                     Foto wird gelesen…
                                 </p>
                             )}
@@ -1330,8 +1339,8 @@ export default function VokabelnHinzufuegenSeite() {
                             )}
 
                             <p className={styles.textblockHinweis}>
-                                Je gerader und heller das Foto, desto besser die Erkennung.
-                                Mehrere Seiten nach und nach.
+                                Die Wörter landen danach in der Liste zum Korrigieren. Mehrere
+                                Seiten nach und nach.
                             </p>
                         </div>
                     ) : eingabeArt === "textblock" ? (
