@@ -11,6 +11,7 @@ import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { xpFormatieren } from "@lexio/profil";
 
@@ -23,95 +24,44 @@ import { SERIF, SANS } from "../../design/schrift";
 import { useDesign } from "../../design/theme";
 import { ABSTAND, heroVerlauf, RADIUS } from "../../design/tokens";
 import { ApiFehler, holeJson, sendeJson } from "../../lib/api";
+import { useDatenCache } from "../../lib/daten-cache";
 import {
     antwortenNachschieben,
-    listeAusCache,
-    listeCachen,
     neueKartenUebertragen,
 } from "../../lib/offline";
-import type { ProfilDaten } from "../../lib/profil-daten";
 
 type Meldung = { text: string; fehler: boolean } | null;
 
 export default function Uebersicht() {
     const { farben, schatten, design } = useDesign();
-    const [sets, setSets] = useState<KachelSet[]>([]);
-    const [profil, setProfil] = useState<ProfilDaten | null>(null);
-    const [laden, setLaden] = useState(true);
+    const cache = useDatenCache();
     const [meldung, setMeldung] = useState<Meldung>(null);
     const [loeschZiel, setLoeschZiel] = useState<KachelSet | null>(null);
 
+    /*
+     * Sets, Profil und Ladezustand kommen direkt aus dem gemeinsamen Cache.
+     * Der hält den letzten Stand im Speicher und frischt ihn im Hintergrund
+     * auf – hier braucht es dafür keinen eigenen Zustand und keinen Effekt.
+     */
+    const sets = cache.sets;
+    const profil = cache.profil;
+    const laden = cache.laden;
+
     const ladeSets = useCallback(async () => {
-        const daten = await holeJson<KachelSet[]>("/api/karteikarten", []);
-        setSets(Array.isArray(daten) ? daten : []);
-        void listeCachen(daten);
-    }, []);
+        await cache.aktualisieren(true);
+    }, [cache]);
 
     useEffect(() => {
-        let abgebrochen = false;
-
-        void (async () => {
-            let ausCache = false;
-
-            try {
-                const setDaten = await holeJson<KachelSet[]>("/api/karteikarten");
-                if (abgebrochen) return;
-                setSets(Array.isArray(setDaten) ? setDaten : []);
-                void listeCachen(setDaten);
-
-                /*
-                 * Was offline liegen blieb, jetzt nachschieben. Bewusst ohne
-                 * Warten und ohne Meldung: es ist ein Nachtrag, kein Teil
-                 * dieser Ansicht. Klappt es nicht, bleibt es in der Queue.
-                 */
-                void antwortenNachschieben(async (kartenId, bewertung) => {
-                    await sendeJson("/api/lernen/antwort", { kartenId, bewertung });
-                }).catch(() => 0);
-                // Und was offline angelegt wurde – ebenfalls als Nachtrag.
-                void neueKartenUebertragen().catch(() => 0);
-            } catch (fehler: unknown) {
-                const ohneNetz = fehler instanceof ApiFehler && fehler.status === 0;
-                const zwischen = ohneNetz ? await listeAusCache<KachelSet[]>() : null;
-                if (abgebrochen) return;
-                if (zwischen) {
-                    setSets(Array.isArray(zwischen) ? zwischen : []);
-                    ausCache = true;
-                } else {
-                    setMeldung({
-                        text:
-                            fehler instanceof ApiFehler
-                                ? fehler.message
-                                : "Übersicht konnte nicht geladen werden.",
-                        fehler: true,
-                    });
-                }
-            }
-
-            /*
-             * Das Profil ist Schmuck auf dieser Seite: ohne Netz bleibt es
-             * leer, statt eine zweite Fehlermeldung neben die erste zu
-             * stellen.
-             */
-            try {
-                const profilDaten = await holeJson<ProfilDaten | null>("/api/profil", null);
-                if (!abgebrochen) setProfil(profilDaten);
-            } catch {
-                // Siehe oben.
-            }
-
-            if (abgebrochen) return;
-            setLaden(false);
-            if (ausCache) {
-                setMeldung({
-                    text: "Offline · die Liste ist vom letzten Laden. Lernen geht weiter.",
-                    fehler: false,
-                });
-            }
-        })();
-
-        return () => {
-            abgebrochen = true;
-        };
+        /*
+         * Was offline liegen blieb, jetzt nachschieben. Bewusst ohne Warten
+         * und ohne Meldung: es ist ein Nachtrag, kein Teil dieser Ansicht.
+         * Klappt es nicht, bleibt es in der Queue.
+         */
+        void antwortenNachschieben(async (kartenId, bewertung) => {
+            await sendeJson("/api/lernen/antwort", { kartenId, bewertung });
+        }).catch(() => 0);
+        // Und was offline angelegt wurde – ebenfalls als Nachtrag.
+        void neueKartenUebertragen().catch(() => 0);
     }, []);
 
     useEffect(() => {
@@ -168,7 +118,9 @@ export default function Uebersicht() {
             <ScrollView
                 style={{ backgroundColor: farben.background }}
                 contentContainerStyle={styles.seite}
+                showsVerticalScrollIndicator={false}
             >
+                <Animated.View entering={FadeInDown.delay(0).duration(280)}>
                 <View style={styles.begruessung}>
                     <View style={styles.begruessungText}>
                         <Text style={[styles.hallo, { color: farben.textPrimary }]}>
@@ -208,7 +160,9 @@ export default function Uebersicht() {
                         </View>
                     ) : null}
                 </View>
+                </Animated.View>
 
+                <Animated.View entering={FadeInDown.delay(60).duration(280)}>
                 <View style={[styles.hero, schatten.karte]}>
                     <LinearGradient
                         colors={hero.farben}
@@ -233,8 +187,10 @@ export default function Uebersicht() {
                         />
                     </LinearGradient>
                 </View>
+                </Animated.View>
 
                 {quaelSet ? (
+                    <Animated.View entering={FadeInDown.delay(120).duration(280)}>
                     <Karte style={[styles.banner, { borderColor: farben.terracotta }]}>
                         <View style={styles.bannerKopf}>
                             <FontAwesome6 name="fire" size={18} color={farben.terracotta} />
@@ -258,6 +214,7 @@ export default function Uebersicht() {
                             style={styles.bannerKnopf}
                         />
                     </Karte>
+                    </Animated.View>
                 ) : null}
 
                 {/*
@@ -266,6 +223,7 @@ export default function Uebersicht() {
                  * mit derselben Mechanik wie im Web, nur ohne Anmeldungswerbung
                  * und mit einem Set aus den Wörtern, die man nicht kannte.
                  */}
+                <Animated.View entering={FadeInDown.delay(quaelSet ? 180 : 120).duration(280)}>
                 <Karte style={styles.banner}>
                     <View style={styles.bannerKopf}>
                         <FontAwesome6
@@ -288,7 +246,9 @@ export default function Uebersicht() {
                         style={styles.bannerKnopf}
                     />
                 </Karte>
+                </Animated.View>
 
+                <Animated.View entering={FadeInDown.delay(240).duration(280)}>
                 <View style={styles.abschnitt}>
                     <View style={styles.abschnittKopf}>
                         <Text style={[styles.abschnittTitel, { color: farben.textPrimary }]}>
@@ -313,31 +273,39 @@ export default function Uebersicht() {
                         />
                     ) : (
                         <View style={styles.raster}>
-                            <Pressable
-                                onPress={() => router.push("/hinzufuegen")}
-                                accessibilityRole="button"
-                                accessibilityLabel="Neues Set anlegen"
-                                style={[styles.neuKachel, { borderColor: farben.line }]}
-                            >
-                                <FontAwesome6 name="plus" size={20} color={farben.textSecondary} />
-                                <Text style={[styles.neuText, { color: farben.textSecondary }]}>
-                                    Neues Set
-                                </Text>
-                            </Pressable>
+                            <Animated.View entering={FadeInDown.delay(0).duration(240)}>
+                    <Pressable
+                        onPress={() => router.push("/hinzufuegen")}
+                        accessibilityRole="button"
+                        accessibilityLabel="Neues Set anlegen"
+                        style={[styles.neuKachel, { borderColor: farben.line, width: "48%" }]}
+                    >
+                                    <FontAwesome6 name="plus" size={20} color={farben.textSecondary} />
+                                    <Text style={[styles.neuText, { color: farben.textSecondary }]}>
+                                        Neues Set
+                                    </Text>
+                                </Pressable>
+                            </Animated.View>
 
-                            {sets.map((set) => (
-                                <SetKachel
+                            {sets.map((set, idx) => (
+                                <Animated.View
                                     key={set.id}
-                                    set={set}
-                                    onLernen={() => router.push(`/lernen/${encodeURIComponent(set.id)}`)}
-                                    onLoeschen={
-                                        set.eigen ? () => setLoeschZiel(set) : undefined
-                                    }
-                                />
+                                    entering={FadeInDown.delay(40 + Math.min(idx, 8) * 40).duration(260)}
+                                    style={{ width: "48%", flexBasis: "48%" }}
+                                >
+                                    <SetKachel
+                                        set={set}
+                                        onLernen={() => router.push(`/lernen/${encodeURIComponent(set.id)}`)}
+                                        onLoeschen={
+                                            set.eigen ? () => setLoeschZiel(set) : undefined
+                                        }
+                                    />
+                                </Animated.View>
                             ))}
                         </View>
                     )}
                 </View>
+                </Animated.View>
             </ScrollView>
 
             <Melde text={meldung?.text ?? null} />
@@ -419,12 +387,12 @@ const styles = StyleSheet.create({
     },
     abschnittTitel: { fontFamily: SERIF.bold, fontSize: 24 },
     abschnittHinweis: { fontFamily: SANS.regular, fontSize: 14 },
-    raster: {
-        flexDirection: "row",
-        flexWrap: "wrap",
-        justifyContent: "space-between",
-        rowGap: ABSTAND.md,
-    },
+                raster: {
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    gap: ABSTAND.md,
+                    justifyContent: "flex-start",
+                },
     skelett: { width: "48%", aspectRatio: 1 },
     neuKachel: {
         width: "48%",

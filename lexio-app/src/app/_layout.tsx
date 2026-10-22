@@ -3,6 +3,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { View } from "react-native";
 
+import { DatenCacheAnbieter } from "../lib/daten-cache";
 import { useLexioSchriften } from "../design/schrift";
 import { DesignAnbieter, useDesign } from "../design/theme";
 import { erinnerungWiederherstellen, meldungenAktivieren } from "../lib/benachrichtigungen";
@@ -38,7 +39,9 @@ export default function RootLayout() {
 
   return (
     <DesignAnbieter>
-      <Inhalt />
+      <DatenCacheAnbieter>
+        <Inhalt />
+      </DatenCacheAnbieter>
     </DesignAnbieter>
   );
 }

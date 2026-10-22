@@ -59,7 +59,7 @@ export function Navigation() {
                 return (
                     <Pressable
                         key={eintrag.href}
-                        onPress={() => router.replace(eintrag.href as never)}
+                        onPress={() => router.push(eintrag.href as never)}
                         accessibilityRole="tab"
                         accessibilityState={{ selected: aktiv }}
                         accessibilityLabel={eintrag.name}
