@@ -192,6 +192,19 @@ export function IconFlamme(props: Props) {
  * geoeffneten Kasten ist der Teil, der die Funktion erklaert – ein blasses
  * Blatt allein tut es nicht.
  */
+/*
+ * Kamera fuer "Foto scannen". Gehaeuse mit Ausloeser und Sucher, dieselbe
+ * Strichstaerke wie die uebrigen Symbole.
+ */
+export function IconKamera(props: Props) {
+    return (
+        <Rahmen kind="kamera" {...props}>
+            <path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.2a1.5 1.5 0 0 0 1.28-.72l.55-.9A1.5 1.5 0 0 1 9.81 3.6h4.38a1.5 1.5 0 0 1 1.28.78l.55.9A1.5 1.5 0 0 0 17.3 6h1.2A2.5 2.5 0 0 1 21 8.5v8A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-8Z" />
+            <circle cx="12" cy="12.2" r="3.4" />
+        </Rahmen>
+    );
+}
+
 export function IconDatei(props: Props) {
     return (
         <Rahmen kind="datei" {...props}>

@@ -11,9 +11,10 @@ import {
     groesseText,
     istTextdatei,
 } from "@/lib/datei-import";
+import { bereinigeOcrPaare, pruefePaare, type OcrBefund } from "@/lib/vokabel-ocr";
 import styles from "./vokabeln-hinzufuegen.module.css";
 import SprachAuswahl from "./sprach-auswahl";
-import { IconDatei } from "@/components/icone";
+import { IconDatei, IconKamera } from "@/components/icone";
 
 type Status = "idle" | "speichert" | "fehler";
 
@@ -105,11 +106,22 @@ export default function VokabelnHinzufuegenSeite() {
      * jedem anderen Wortpaar. Erst wenn das Uebernehmen geglueckt ist,
      * wird weitergeschaltet – gespeichert wird weiterhin erst in Schritt 3.
      */
-    const [eingabeArt, setEingabeArt] = useState<"zeilen" | "textblock">("zeilen");
+    const [eingabeArt, setEingabeArt] = useState<"zeilen" | "textblock" | "foto">("zeilen");
     const [textblock, setTextblock] = useState("");
     /** Gruene Rueckmeldung nach dem Uebernehmen eines Textblocks. */
     const [textblockMeldung, setTextblockMeldung] = useState<string | null>(null);
     const textblockRef = useRef<HTMLTextAreaElement>(null);
+
+    /*
+     * Foto-Import (Plan 2.4). Das Bild wird auf dem Geraet verkleinert und
+     * erst dann geschickt – ein Handyfoto waere sonst zig Megabyte gross.
+     */
+    const [bildUrl, setBildUrl] = useState<string | null>(null);
+    const [ocrLaedt, setOcrLaedt] = useState(false);
+    const [ocrFehler, setOcrFehler] = useState<string | null>(null);
+    /** Nach einem Import werden die Zeilen auf verdaechtige Paare geprueft. */
+    const [pruefungAktiv, setPruefungAktiv] = useState(false);
+    const fotoFeldRef = useRef<HTMLInputElement>(null);
     const [setName, setSetName] = useState("");
     /** Die Sprache als Code aus public.sprachen. null = noch keine gewaehlt. */
     const [spracheCode, setSpracheCode] = useState<string | null>(null);
@@ -224,6 +236,20 @@ export default function VokabelnHinzufuegenSeite() {
     const unvollstaendigIndex = useMemo(
         () => gefuelltePaare.findIndex((p) => !p.frage.trim() || !p.antwort.trim()),
         [gefuelltePaare],
+    );
+
+    /*
+     * Verdaechtige Zeilen werden bei jedem Rendern neu bestimmt, nicht beim
+     * Import eingefroren. Korrigiert der Nutzer ein Paar, verschwindet die
+     * Markierung sofort – ohne dass er irgendwo bestaetigen muesste.
+     */
+    const befunde = useMemo(
+        () => (pruefungAktiv ? pruefePaare(paare, { sprache: spracheCode }) : []),
+        [paare, spracheCode, pruefungAktiv],
+    );
+    const befundNachIndex = useMemo(
+        () => new Map<number, OcrBefund>(befunde.map((b) => [b.index, b])),
+        [befunde],
     );
 
     /** Fehler eines Feldes, egal ob lokal oder vom Server gesetzt. */
@@ -415,6 +441,113 @@ export default function VokabelnHinzufuegenSeite() {
         uebernehmen(ergebnis, datei.name);
     }
 
+    /*
+     * Ein Foto verkleinern und als JPEG-Daten-URL zurückgeben.
+     *
+     * Ohne diesen Schritt gingen Handyfotos mit mehreren Megabyte raus – sie
+     * sprengen die Request-Grenze, bevor das Modell sie überhaupt sieht. 1800
+     * Pixel lange Kante ist der Punkt, an dem Text noch scharf genug ist und
+     * das Bild trotzdem klein bleibt.
+     */
+    async function bildVerkleinern(datei: File): Promise<string> {
+        const bitmap = await createImageBitmap(datei, { imageOrientation: "from-image" });
+        const seite = Math.max(bitmap.width, bitmap.height);
+        const faktor = Math.min(1, 1800 / seite);
+        const breite = Math.max(1, Math.round(bitmap.width * faktor));
+        const hoehe = Math.max(1, Math.round(bitmap.height * faktor));
+
+        const leinwand = document.createElement("canvas");
+        leinwand.width = breite;
+        leinwand.height = hoehe;
+        const ctx = leinwand.getContext("2d");
+        if (!ctx) throw new Error("canvas");
+        // Weisser Grund: ein transparentes PNG würde sonst schwarz.
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, breite, hoehe);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(bitmap, 0, 0, breite, hoehe);
+        bitmap.close();
+
+        return leinwand.toDataURL("image/jpeg", 0.85);
+    }
+
+    async function fotoLesen(datei: File) {
+        setOcrFehler(null);
+        setOcrLaedt(true);
+        setFehler({});
+
+        try {
+            if (!datei.type.startsWith("image/")) {
+                setOcrFehler("Das ist kein Bild. Bitte ein Foto wählen.");
+                return;
+            }
+
+            const datenUrl = await bildVerkleinern(datei);
+            setBildUrl(datenUrl);
+
+            const antwort = await sendeJson<{
+                paare?: { frage: string; antwort: string }[];
+                leer?: number;
+                doppelt?: number;
+                verworfen?: number;
+                abgeschnitten?: boolean;
+            }>("/api/ocr/vokabeln", { bild: datenUrl });
+
+            /*
+             * Das Modell liefert rohe Paare. Aufgeräumt wird hier – dieselbe
+             * Funktion wie in der App, damit beide Oberflächen dieselbe Liste
+             * zeigen.
+             */
+            const bereinigt = bereinigeOcrPaare(antwort.paare ?? []);
+            if (bereinigt.paare.length === 0) {
+                setOcrFehler(
+                    "Auf dem Foto war keine Vokabel zu erkennen. Versuch es näher am Text und ohne Schatten.",
+                );
+                return;
+            }
+
+            const neueListe: Paar[] = bereinigt.paare.map((p) => ({
+                ...LEER,
+                frage: p.frage,
+                antwort: p.antwort,
+            }));
+
+            const nurLeereStartzeile =
+                paare.length === 1 && !paare[0].frage.trim() && !paare[0].antwort.trim();
+            const gesamt = nurLeereStartzeile ? neueListe : [...paare, ...neueListe];
+            setPaare(gesamt);
+            setPruefungAktiv(true);
+            setBildUrl(null);
+            setEingabeArt("zeilen");
+
+            const teile = [
+                `${neueListe.length} Vokabel${neueListe.length === 1 ? "" : "n"} aus dem Foto übernommen`,
+            ];
+            if (bereinigt.verworfen > 0) {
+                teile.push(`${bereinigt.verworfen} unbrauchbare Zeile${bereinigt.verworfen === 1 ? "" : "n"} aussortiert`);
+            }
+            if (bereinigt.doppelt > 0) {
+                teile.push(`${bereinigt.doppelt} doppelt`);
+            }
+            if (antwort.abgeschnitten) {
+                teile.push("das Foto enthielt mehr Wörter, als in einem Durchgang passen");
+            }
+            teile.push("Bitte kurz prüfen.");
+            setTextblockMeldung(teile.join(". ") + ".");
+            window.setTimeout(() => textblockRef.current?.scrollIntoView({ block: "center" }), 30);
+        } catch (f) {
+            setOcrFehler(
+                f instanceof ApiFehler
+                    ? f.message
+                    : "Das Foto konnte nicht gelesen werden. Bitte noch einmal versuchen.",
+            );
+        } finally {
+            setOcrLaedt(false);
+            if (fotoFeldRef.current) fotoFeldRef.current.value = "";
+        }
+    }
+
     function uebernehmen(ergebnis: ImportErgebnis, quelle: string) {
         /*
          * Zwei Parser, in dieser Reihenfolge.
@@ -520,7 +653,6 @@ export default function VokabelnHinzufuegenSeite() {
         setTextblockMeldung(teile.join(" "));
         setEingabeArt("zeilen");
         window.setTimeout(() => textblockRef.current?.scrollIntoView({ block: "center" }), 30);
-
         /*
          * Automatisch fuellen, was nebenbei mitgekommen ist. Der Nutzer war
          * so freundlich, einen ganzen Block abzugeben – da soll er nicht fuer
@@ -1050,10 +1182,10 @@ export default function VokabelnHinzufuegenSeite() {
                 </header>
 
                 <div className={styles.form}>
-                    {/* Zwei Wege, Woerter einzutragen (Plan 2.3): Zeile fuer
-                        Zeile tippen oder einen ganzen Textblock einfuegen.
-                        Beide munden in derselben Liste, die erst in Schritt 3
-                        gespeichert wird. */}
+                    {/* Drei Wege, Woerter einzutragen (Plan 2.3/2.4): Zeile
+                        fuer Zeile tippen, einen ganzen Textblock einfuegen
+                        oder ein Foto ablesen lassen. Alle munden in derselben
+                        Liste, die erst in Schritt 3 gespeichert wird. */}
                     <div className={styles.eingabeModus} role="tablist" aria-label="Eingabeweise">
                         <button
                             type="button"
@@ -1067,7 +1199,7 @@ export default function VokabelnHinzufuegenSeite() {
                                 setFehler({});
                             }}
                         >
-                            Zeile für Zeile
+                            Zeilen
                         </button>
                         <button
                             type="button"
@@ -1081,11 +1213,81 @@ export default function VokabelnHinzufuegenSeite() {
                                 setFehler({});
                             }}
                         >
-                            Textblock einfügen
+                            Textblock
+                        </button>
+                        <button
+                            type="button"
+                            role="tab"
+                            aria-selected={eingabeArt === "foto"}
+                            className={`${styles.modus} ${
+                                eingabeArt === "foto" ? styles.modusAktiv : ""
+                            }`}
+                            onClick={() => {
+                                setEingabeArt("foto");
+                                setFehler({});
+                            }}
+                        >
+                            Foto
                         </button>
                     </div>
 
-                    {eingabeArt === "textblock" ? (
+                    {eingabeArt === "foto" ? (
+                        <div className={styles.textblock}>
+                            <div className={styles.dateiKasten}>
+                                <input
+                                    id="vokabel-foto"
+                                    ref={fotoFeldRef}
+                                    type="file"
+                                    className={styles.dateiFeld}
+                                    accept="image/jpeg,image/png,image/webp"
+                                    capture="environment"
+                                    onChange={(e) => {
+                                        const datei = e.target.files?.[0];
+                                        if (datei) void fotoLesen(datei);
+                                    }}
+                                />
+                                <label htmlFor="vokabel-foto" className={styles.dateiKnopf}>
+                                    <IconKamera aria-hidden="true" />
+                                    Foto wählen
+                                </label>
+                                <span className={styles.dateiText}>
+                                    <span className={styles.dateiTitel}>
+                                        Vokabeln aus einem Foto
+                                    </span>
+                                    <span className={styles.dateiHinweis}>
+                                        Seite fotografieren oder ein Bild wählen. Die Wörter werden
+                                        erkannt und landen in der Liste zum Korrigieren.
+                                    </span>
+                                </span>
+                            </div>
+
+                            {bildUrl && (
+                                /* eslint-disable-next-line @next/next/no-img-element */
+                                <img
+                                    className={styles.fotoVorschau}
+                                    src={bildUrl}
+                                    alt="Gewähltes Foto"
+                                />
+                            )}
+
+                            {ocrLaedt && (
+                                <p className={styles.textblockOk} role="status">
+                                    Foto wird gelesen…
+                                </p>
+                            )}
+
+                            {ocrFehler && (
+                                <p className={styles.fehler} role="alert">
+                                    {ocrFehler}
+                                </p>
+                            )}
+
+                            <p className={styles.textblockHinweis}>
+                                Je gerader und heller das Foto, desto besser die Erkennung.
+                                Mehrere Seiten nach und nach.
+                            </p>
+                        </div>
+                    ) : eingabeArt === "textblock" ? (
                         <div className={styles.textblock}>
 {/*
                              * Datei statt Liste abtippen (Feature 3).
@@ -1194,8 +1396,15 @@ export default function VokabelnHinzufuegenSeite() {
                                 Wörter übernehmen
                             </button>
                         </div>
-                    ) : (
+                        ) : (
                         <>
+                    {befunde.length > 0 && (
+                        <p className={styles.pruefBanner} role="status">
+                            {befunde.length}&nbsp;
+                            {befunde.length === 1 ? "Eintrag" : "Einträge"} bitte prüfen – die
+                            Zeilen sind markiert.
+                        </p>
+                    )}
                     {paare.map((paar, index) => {
                         /*
                          * Serverindex != Anzeigeindex.
@@ -1225,9 +1434,12 @@ export default function VokabelnHinzufuegenSeite() {
                             fehler[`beispiel.${gefIndex}`] ?? serverBeispielFehler;
                         const beispielUebFehler =
                             fehler[`beispielUebersetzung.${gefIndex}`] ?? serverBeispielUebFehler;
+                        const befund = befundNachIndex.get(index);
                         return (
                             <div
-                                className={styles.paarZeile}
+                                className={`${styles.paarZeile}${
+                                    befund ? ` ${styles.paarZeilePruefen}` : ""
+                                }`}
                                 key={index}
                                 data-paar-index={index}
                             >
@@ -1348,6 +1560,13 @@ export default function VokabelnHinzufuegenSeite() {
                                     >
                                         <i className="fa-solid fa-xmark" aria-hidden="true" />
                                     </button>
+                                )}
+
+                                {befund && (
+                                    <p className={styles.pruefGrund}>
+                                        <i className="fa-solid fa-triangle-exclamation" aria-hidden="true" />
+                                        &nbsp;{befund.text}
+                                    </p>
                                 )}
                             </div>
                         );

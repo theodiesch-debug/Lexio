@@ -419,7 +419,7 @@
 
 .eingabeModus {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 0.5rem;
     padding: 0.25rem;
     border: 1px solid var(--line);
@@ -674,6 +674,50 @@
     color: var(--sage);
     font-size: 0.9rem;
     line-height: 1.4;
+}
+
+/* =============================================================================
+   Foto-Import (Plan 2.4) und Pruef-Markierungen.
+
+   Nach einem Import wird nichts stillschweigend korrigiert. Zeilen, die
+   verdaechtig aussehen (beide Seiten deutsch, Spalten vertauscht, doppelte
+   Antwort), werden gold markiert – Gold ist im Repo die Farbe fuer "sieh
+   kurz hin", Terrakotta bleibt der blockierende Fehler.
+   ========================================================================== */
+
+.fotoVorschau {
+    display: block;
+    width: 100%;
+    max-height: 320px;
+    object-fit: contain;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: var(--input-bg);
+}
+
+.pruefBanner {
+    margin: 0;
+    padding: 0.65rem 0.9rem;
+    border-radius: 10px;
+    border: 1px solid var(--gold);
+    background: rgba(231, 177, 74, 0.1);
+    color: var(--gold);
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+
+.paarZeilePruefen {
+    border-left: 3px solid var(--gold);
+    padding-left: 0.6rem;
+    background: rgba(231, 177, 74, 0.05);
+}
+
+.pruefGrund {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: var(--gold);
+    font-size: 0.82rem;
+    line-height: 1.35;
 }
 
 /* =============================================================================

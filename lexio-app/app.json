@@ -42,6 +42,14 @@
           "color": "#e7b14a",
           "defaultChannel": "lexio-erinnerung"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Lexio braucht Zugriff auf deine Fotos, um Vokabeln von einem Bild zu übernehmen.",
+          "cameraPermission": "Lexio braucht die Kamera, um Vokabeln zu fotografieren.",
+          "microphonePermission": false
+        }
       ]
     ],
     "experiments": {

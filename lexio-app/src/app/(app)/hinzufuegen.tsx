@@ -14,9 +14,13 @@
  */
 
 import { FontAwesome6 } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import { router } from "expo-router";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
+    ActivityIndicator,
+    Image,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -46,6 +50,7 @@ import {
 import { kopieName, MAX_SET_NAME } from "@lexio/kopie-name";
 import { farbeVonSprache, type Sprache, type SpracheInfo } from "@lexio/sprachen";
 import { textblockZuPaaren } from "@lexio/textblock-import";
+import { bereinigeOcrPaare, pruefePaare, type OcrBefund } from "@lexio/vokabel-ocr";
 
 type Status = "idle" | "speichert" | "fehler";
 
@@ -103,7 +108,7 @@ export default function Hinzufuegen() {
     /** null = nichts gewählt, NEUES_SET = neues Set, sonst der Slug. */
     const [auswahl, setAuswahl] = useState<string | null>(null);
     const [paare, setPaare] = useState<Paar[]>([{ ...LEER }]);
-    const [eingabeArt, setEingabeArt] = useState<"zeilen" | "textblock">("zeilen");
+    const [eingabeArt, setEingabeArt] = useState<"zeilen" | "textblock" | "foto">("zeilen");
     const [textblock, setTextblock] = useState("");
     /** Grüne Rückmeldung nach dem Übernehmen eines Textblocks. */
     const [textblockMeldung, setTextblockMeldung] = useState<string | null>(null);
@@ -111,6 +116,12 @@ export default function Hinzufuegen() {
     /** Sprache als Code aus public.sprachen. null = noch keine gewählt. */
     const [spracheCode, setSpracheCode] = useState<string | null>(null);
     const [demosOffen, setDemosOffen] = useState(false);
+
+    const [bildUri, setBildUri] = useState<string | null>(null);
+    const [ocrLaedt, setOcrLaedt] = useState(false);
+    const [ocrFehler, setOcrFehler] = useState<string | null>(null);
+    /** Nach einem Import werden verdächtige Zeilen markiert. */
+    const [pruefungAktiv, setPruefungAktiv] = useState(false);
 
     const [status, setStatus] = useState<Status>("idle");
     const [fehler, setFehler] = useState<Fehler>({});
@@ -232,6 +243,20 @@ export default function Hinzufuegen() {
         [gefuelltePaare],
     );
 
+    /*
+     * Verdächtige Zeilen bei jedem Rendern neu bestimmen, nicht beim Import
+     * einfrieren: korrigiert der Nutzer ein Paar, verschwindet die Markierung
+     * sofort.
+     */
+    const befunde = useMemo(
+        () => (pruefungAktiv ? pruefePaare(paare, { sprache: spracheCode }) : []),
+        [paare, spracheCode, pruefungAktiv],
+    );
+    const befundNachIndex = useMemo(
+        () => new Map<number, OcrBefund>(befunde.map((b) => [b.index, b])),
+        [befunde],
+    );
+
     const legtNeuesSetAn = !gewaehltesSet || setName.trim() !== gewaehltesSet.name.trim();
 
     /** Übersetzt den Formularnamen in den Spaltennamen der API. */
@@ -351,6 +376,133 @@ export default function Hinzufuegen() {
 
         // Was der Nutzer mitgegeben hat, gleich mit Beispielsätzen auffüllen.
         void beispielSaetzeErgaenzen(neueListe);
+    }
+
+    /*
+     * Foto (Plan 2.4): Bild aufnehmen oder aus der Galerie wählen, auf eine
+     * vertretbare Größe schrumpfen und von der KI auslesen lassen. Das
+     * Ergebnis landet in derselben bearbeitbaren Liste wie ein Textblock –
+     * niemand muss der Erkennung blind vertrauen.
+     */
+    async function fotoWaehlen(quelle: "kamera" | "galerie") {
+        if (ocrLaedt) return;
+        setOcrFehler(null);
+
+        try {
+            const erlaubnis =
+                quelle === "kamera"
+                    ? await ImagePicker.requestCameraPermissionsAsync()
+                    : await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (!erlaubnis.granted) {
+                setOcrFehler(
+                    quelle === "kamera"
+                        ? "Ohne Kamerazugriff geht kein Foto. Die Erlaubnis lässt sich in den Android-Einstellungen geben."
+                        : "Ohne Zugriff auf die Fotos geht kein Bild. Die Erlaubnis lässt sich in den Android-Einstellungen geben.",
+                );
+                return;
+            }
+
+            const optionen: ImagePicker.ImagePickerOptions = {
+                mediaTypes: ["images"],
+                quality: 0.8,
+            };
+            const ergebnis =
+                quelle === "kamera"
+                    ? await ImagePicker.launchCameraAsync(optionen)
+                    : await ImagePicker.launchImageLibraryAsync(optionen);
+            if (ergebnis.canceled || !ergebnis.assets?.[0]) return;
+
+            const bild = ergebnis.assets[0];
+            setBildUri(bild.uri);
+            await ocrLesen(bild.uri);
+        } catch {
+            setOcrFehler("Das Bild konnte nicht geöffnet werden.");
+        }
+    }
+
+    async function ocrLesen(uri: string) {
+        setOcrLaedt(true);
+        setOcrFehler(null);
+
+        try {
+            /*
+             * Handyfotos sind viel zu groß für die Anfrage. Der Server kürzt
+             * zwar auch, aber je kleiner das Bild hier rausgeht, desto
+             * schneller die Übertragung. 1800 px lange Kante lässt Text noch
+             * scharf genug und bleibt weit unter dem Limit.
+             */
+            const klein = await manipulateAsync(uri, [{ resize: { width: 1800 } }], {
+                compress: 0.85,
+                format: SaveFormat.JPEG,
+                base64: true,
+            });
+            if (!klein.base64) {
+                setOcrFehler("Das Bild konnte nicht verarbeitet werden.");
+                return;
+            }
+
+            const daten = await sendeJson<{
+                paare?: { frage: string; antwort: string }[];
+                verworfen?: number;
+                doppelt?: number;
+                abgeschnitten?: boolean;
+            }>("/api/ocr/vokabeln", { bild: `data:image/jpeg;base64,${klein.base64}` });
+
+            /*
+             * Dieselbe Bereinigung wie im Web: Nummerierung weg, Dubletten
+             * weg, Müll weg. Das Modell liefert roh, aufgeräumt wird im Code.
+             */
+            const bereinigt = bereinigeOcrPaare(daten.paare ?? [], {
+                bestehende: paareRef.current,
+            });
+            if (bereinigt.paare.length === 0) {
+                setOcrFehler(
+                    "Auf dem Foto war keine Vokabel zu erkennen. Versuch es näher am Text und ohne Schatten.",
+                );
+                return;
+            }
+
+            const neueListe: Paar[] = bereinigt.paare.map((p) => ({
+                ...LEER,
+                frage: p.frage,
+                antwort: p.antwort,
+            }));
+            const bisher = paareRef.current;
+            const nurLeereStartzeile =
+                bisher.length === 1 && !bisher[0].frage.trim() && !bisher[0].antwort.trim();
+            const gesamt = nurLeereStartzeile ? neueListe : [...bisher, ...neueListe];
+            setPaare(gesamt);
+            setPruefungAktiv(true);
+            setBildUri(null);
+            setEingabeArt("zeilen");
+            setFehler({});
+
+            const meldung = [
+                `${neueListe.length} Vokabel${neueListe.length === 1 ? "" : "n"} aus dem Foto übernommen`,
+            ];
+            if (bereinigt.verworfen > 0) {
+                meldung.push(`${bereinigt.verworfen} unbrauchbare aussortiert`);
+            }
+            if (bereinigt.doppelt > 0) {
+                meldung.push(`${bereinigt.doppelt} doppelt`);
+            }
+            setTextblockMeldung(meldung.join(". ") + ". Bitte kurz prüfen.");
+
+            /*
+             * Beispielsätze bewusst NICHT automatisch: ein Foto ist die
+             * unsicherste Quelle, und ein Satz zu einem falsch erkannten Wort
+             * wäre nach der Korrektur falsch. Der Nutzer kann sie über den
+             * vorhandenen Knopf nachziehen.
+             */
+        } catch (f) {
+            setOcrFehler(
+                f instanceof ApiFehler
+                    ? f.message
+                    : "Das Foto konnte nicht gelesen werden. Prüf die Verbindung und versuch es noch einmal.",
+            );
+        } finally {
+            setOcrLaedt(false);
+        }
     }
 
     /*
@@ -805,13 +957,15 @@ export default function Hinzufuegen() {
                     />
 
                     <Karte style={styles.form}>
-                        {/* Zwei Wege, Wörter einzutragen: Zeile für Zeile oder ein
-                            ganzer Textblock. Beide münden in dieselbe Liste. */}
+                        {/* Drei Wege, Wörter einzutragen: Zeile für Zeile, ein
+                            ganzer Textblock oder ein Foto. Alle münden in
+                            dieselbe Liste. */}
                         <View style={[styles.modus, { borderColor: farben.line }]}>
                             {(
                                 [
-                                    ["zeilen", "Zeile für Zeile"],
-                                    ["textblock", "Textblock einfügen"],
+                                    ["zeilen", "Zeilen"],
+                                    ["textblock", "Textblock"],
+                                    ["foto", "Foto"],
                                 ] as const
                             ).map(([art, label]) => {
                                 const aktiv = eingabeArt === art;
@@ -878,8 +1032,82 @@ export default function Hinzufuegen() {
                                 ) : null}
                                 <Knopf titel="Wörter übernehmen" onPress={textblockUebernehmen} />
                             </View>
+                        ) : eingabeArt === "foto" ? (
+                            <View style={styles.foto}>
+                                <Text style={[styles.label, { color: farben.textSecondary }]}>
+                                    Vokabeln aus einem Foto
+                                </Text>
+                                <Text style={[styles.hinweis, { color: farben.textMuted }]}>
+                                    Fotografiere dein Vokabelheft oder wähle ein Bild aus der
+                                    Galerie. Die Wörter werden erkannt und landen danach in der
+                                    normalen Liste – dort kannst du alles korrigieren.
+                                </Text>
+
+                                {bildUri ? (
+                                    <Image
+                                        source={{ uri: bildUri }}
+                                        style={[styles.vorschau, { borderColor: farben.line }]}
+                                        resizeMode="cover"
+                                        accessibilityLabel="Gewähltes Foto"
+                                    />
+                                ) : null}
+
+                                <View style={styles.fotoKnoepfe}>
+                                    <Knopf
+                                        titel="Kamera"
+                                        onPress={() => void fotoWaehlen("kamera")}
+                                        disabled={ocrLaedt}
+                                        style={styles.fotoKnopf}
+                                    />
+                                    <Knopf
+                                        titel="Galerie"
+                                        variante="rand"
+                                        onPress={() => void fotoWaehlen("galerie")}
+                                        disabled={ocrLaedt}
+                                        style={styles.fotoKnopf}
+                                    />
+                                </View>
+
+                                {ocrLaedt ? (
+                                    <View
+                                        style={styles.ocrLaedt}
+                                        accessibilityLiveRegion="polite"
+                                        accessibilityLabel="Foto wird gelesen"
+                                    >
+                                        <ActivityIndicator color={farben.textSecondary} />
+                                        <Text style={[styles.hinweis, { color: farben.textMuted }]}>
+                                            Foto wird gelesen…
+                                        </Text>
+                                    </View>
+                                ) : null}
+
+                                {ocrFehler ? (
+                                    <Text style={[styles.fehlerText, { color: farben.terracotta }]}>
+                                        {ocrFehler}
+                                    </Text>
+                                ) : null}
+                            </View>
                         ) : (
                             <>
+                                {befunde.length > 0 ? (
+                                    <View
+                                        style={[
+                                            styles.pruefBanner,
+                                            {
+                                                borderColor: farben.gold,
+                                                backgroundColor: farben.champagnerSchein,
+                                                borderRadius: RADIUS.standard,
+                                            },
+                                        ]}
+                                        accessibilityLiveRegion="polite"
+                                    >
+                                        <Text style={[styles.pruefBannerText, { color: farben.gold }]}>
+                                            {befunde.length}{" "}
+                                            {befunde.length === 1 ? "Eintrag" : "Einträge"} bitte
+                                            prüfen – die Zeilen sind markiert.
+                                        </Text>
+                                    </View>
+                                ) : null}
                                 {paare.map((paar, index) => {
                                     // Serverindex (nur gefüllte Zeilen) vs.
                                     // Anzeigeindex (alle Zeilen).
@@ -901,6 +1129,7 @@ export default function Hinzufuegen() {
                                                 "beispielUebersetzung",
                                             )}
                                             kannEntfernen={paare.length > 1}
+                                            befund={befundNachIndex.get(index)}
                                             onAendern={paarAendern}
                                             onEntfernen={paarEntfernen}
                                         />
@@ -1141,6 +1370,7 @@ function PaarZeile({
     beispielFehler,
     beispielUebFehler,
     kannEntfernen,
+    befund,
     onAendern,
     onEntfernen,
 }: {
@@ -1151,6 +1381,7 @@ function PaarZeile({
     beispielFehler?: string;
     beispielUebFehler?: string;
     kannEntfernen: boolean;
+    befund?: OcrBefund;
     onAendern: (index: number, feld: keyof Paar, wert: string) => void;
     onEntfernen: (index: number) => void;
 }) {
@@ -1165,7 +1396,17 @@ function PaarZeile({
     );
 
     return (
-        <Karte style={styles.paarZeile}>
+        <Karte
+            style={[
+                styles.paarZeile,
+                befund ? { borderColor: farben.gold, borderWidth: 2 } : null,
+            ]}
+        >
+            {befund ? (
+                <Text style={[styles.pruefGrund, { color: farben.gold }]}>
+                    Prüfen: {befund.text}
+                </Text>
+            ) : null}
             {beschriftet("Begriff")}
             <Feld
                 value={paar.frage}
@@ -1319,6 +1560,23 @@ const styles = StyleSheet.create({
     },
     modusText: { fontSize: 14 },
     textblock: { gap: ABSTAND.md },
+    foto: { gap: ABSTAND.md },
+    vorschau: {
+        width: "100%",
+        height: 180,
+        borderRadius: RADIUS.feld,
+        borderWidth: 1,
+    },
+    fotoKnoepfe: { flexDirection: "row", gap: ABSTAND.sm },
+    fotoKnopf: { flex: 1 },
+    ocrLaedt: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: ABSTAND.sm,
+    },
+    pruefBanner: { padding: ABSTAND.md, borderWidth: 1 },
+    pruefBannerText: { fontFamily: SANS.medium, fontSize: 14, lineHeight: 20 },
+    pruefGrund: { fontFamily: SANS.medium, fontSize: 13, lineHeight: 18 },
     paarZeile: { padding: ABSTAND.lg, gap: ABSTAND.sm },
     entfernen: {
         flexDirection: "row",
