@@ -695,6 +695,32 @@
     background: var(--input-bg);
 }
 
+/* Zwei Aktionen (Foto machen, Bild waehlen) nebeneinander; unter 30em
+   gestapelt, damit die Beschriftungen ohne Umbruch lesbar bleiben. */
+.fotoAktionen {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+@media (max-width: 30em) {
+    .fotoAktionen {
+        width: 100%;
+    }
+
+    .fotoAktionen .dateiKnopf {
+        flex: 1;
+    }
+}
+
+/* Ziel-Zustand beim Ziehen einer Bilddatei auf den Kasten. */
+.dateiKastenZieht {
+    border-color: var(--gold);
+    border-style: solid;
+    background: rgba(231, 177, 74, 0.08);
+}
+
 .pruefBanner {
     margin: 0;
     padding: 0.65rem 0.9rem;

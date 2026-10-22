@@ -196,6 +196,20 @@ export function IconFlamme(props: Props) {
  * Kamera fuer "Foto scannen". Gehaeuse mit Ausloeser und Sucher, dieselbe
  * Strichstaerke wie die uebrigen Symbole.
  */
+/*
+ * Bild fuer "Bild waehlen": Rahmen mit Berg und Sonne, dasselbe Sinnbild wie
+ * in jeder Galerie.
+ */
+export function IconBild(props: Props) {
+    return (
+        <Rahmen kind="bild" {...props}>
+            <rect x="3" y="4.5" width="18" height="15" rx="2.5" />
+            <circle cx="8.5" cy="9.5" r="1.75" />
+            <path d="M4 16.5l4.5-4.5 3.5 3.5 3-2.5 5 4.5" />
+        </Rahmen>
+    );
+}
+
 export function IconKamera(props: Props) {
     return (
         <Rahmen kind="kamera" {...props}>

@@ -14,7 +14,7 @@ import {
 import { bereinigeOcrPaare, pruefePaare, type OcrBefund } from "@/lib/vokabel-ocr";
 import styles from "./vokabeln-hinzufuegen.module.css";
 import SprachAuswahl from "./sprach-auswahl";
-import { IconDatei, IconKamera } from "@/components/icone";
+import { IconDatei, IconKamera, IconBild } from "@/components/icone";
 
 type Status = "idle" | "speichert" | "fehler";
 
@@ -122,6 +122,9 @@ export default function VokabelnHinzufuegenSeite() {
     /** Nach einem Import werden die Zeilen auf verdaechtige Paare geprueft. */
     const [pruefungAktiv, setPruefungAktiv] = useState(false);
     const fotoFeldRef = useRef<HTMLInputElement>(null);
+    const galerieFeldRef = useRef<HTMLInputElement>(null);
+    /** Zieht der Nutzer gerade ein Bild ueber den Kasten? */
+    const [zieht, setZieht] = useState(false);
     const [setName, setSetName] = useState("");
     /** Die Sprache als Code aus public.sprachen. null = noch keine gewaehlt. */
     const [spracheCode, setSpracheCode] = useState<string | null>(null);
@@ -545,6 +548,7 @@ export default function VokabelnHinzufuegenSeite() {
         } finally {
             setOcrLaedt(false);
             if (fotoFeldRef.current) fotoFeldRef.current.value = "";
+            if (galerieFeldRef.current) galerieFeldRef.current.value = "";
         }
     }
 
@@ -1233,7 +1237,32 @@ export default function VokabelnHinzufuegenSeite() {
 
                     {eingabeArt === "foto" ? (
                         <div className={styles.textblock}>
-                            <div className={styles.dateiKasten}>
+                            {/*
+                             * Zwei Wege, wie in der App: einmal direkt
+                             * fotografieren, einmal ein vorhandenes Bild
+                             * waehlen. Zwei <input type="file">, die sich nur
+                             * in `capture` unterscheiden – auf dem Handy
+                             * oeffnet das erste die Kamera, das zweite die
+                             * Galerie. Auf dem Rechner sind beide derselbe
+                             * Dateidialog; dort traegt der Kasten zusaetzlich
+                             * Drag & Drop.
+                             */}
+                            <div
+                                className={`${styles.dateiKasten} ${
+                                    zieht ? styles.dateiKastenZieht : ""
+                                }`}
+                                onDragOver={(e) => {
+                                    e.preventDefault();
+                                    setZieht(true);
+                                }}
+                                onDragLeave={() => setZieht(false)}
+                                onDrop={(e) => {
+                                    e.preventDefault();
+                                    setZieht(false);
+                                    const datei = e.dataTransfer.files?.[0];
+                                    if (datei) void fotoLesen(datei);
+                                }}
+                            >
                                 <input
                                     id="vokabel-foto"
                                     ref={fotoFeldRef}
@@ -1246,17 +1275,35 @@ export default function VokabelnHinzufuegenSeite() {
                                         if (datei) void fotoLesen(datei);
                                     }}
                                 />
-                                <label htmlFor="vokabel-foto" className={styles.dateiKnopf}>
-                                    <IconKamera aria-hidden="true" />
-                                    Foto wählen
-                                </label>
+                                <input
+                                    id="vokabel-galerie"
+                                    ref={galerieFeldRef}
+                                    type="file"
+                                    className={styles.dateiFeld}
+                                    accept="image/jpeg,image/png,image/webp"
+                                    onChange={(e) => {
+                                        const datei = e.target.files?.[0];
+                                        if (datei) void fotoLesen(datei);
+                                    }}
+                                />
+                                <div className={styles.fotoAktionen}>
+                                    <label htmlFor="vokabel-foto" className={styles.dateiKnopf}>
+                                        <IconKamera aria-hidden="true" />
+                                        Foto machen
+                                    </label>
+                                    <label htmlFor="vokabel-galerie" className={styles.dateiKnopf}>
+                                        <IconBild aria-hidden="true" />
+                                        Bild wählen
+                                    </label>
+                                </div>
                                 <span className={styles.dateiText}>
                                     <span className={styles.dateiTitel}>
                                         Vokabeln aus einem Foto
                                     </span>
                                     <span className={styles.dateiHinweis}>
-                                        Seite fotografieren oder ein Bild wählen. Die Wörter werden
-                                        erkannt und landen in der Liste zum Korrigieren.
+                                        Seite fotografieren oder ein Bild aus der Galerie wählen – hier
+                                        auch per Ziehen und Ablegen. Die Wörter werden erkannt und
+                                        landen in der Liste zum Korrigieren.
                                     </span>
                                 </span>
                             </div>

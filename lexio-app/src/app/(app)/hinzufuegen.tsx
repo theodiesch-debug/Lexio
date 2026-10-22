@@ -1054,18 +1054,28 @@ export default function Hinzufuegen() {
 
                                 <View style={styles.fotoKnoepfe}>
                                     <Knopf
-                                        titel="Kamera"
                                         onPress={() => void fotoWaehlen("kamera")}
                                         disabled={ocrLaedt}
                                         style={styles.fotoKnopf}
-                                    />
+                                        accessibilityLabel="Foto machen"
+                                    >
+                                        <FontAwesome6 name="camera" size={15} color="#17110a" />
+                                        <Text style={[styles.knopfInhalt, { color: "#17110a" }]}>
+                                            Foto machen
+                                        </Text>
+                                    </Knopf>
                                     <Knopf
-                                        titel="Galerie"
                                         variante="rand"
                                         onPress={() => void fotoWaehlen("galerie")}
                                         disabled={ocrLaedt}
                                         style={styles.fotoKnopf}
-                                    />
+                                        accessibilityLabel="Bild wählen"
+                                    >
+                                        <FontAwesome6 name="image" size={15} color={farben.textPrimary} />
+                                        <Text style={[styles.knopfInhalt, { color: farben.textPrimary }]}>
+                                            Bild wählen
+                                        </Text>
+                                    </Knopf>
                                 </View>
 
                                 {ocrLaedt ? (
