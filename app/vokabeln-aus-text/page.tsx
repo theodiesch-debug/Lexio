@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { beurteileUspZugang, type UspZugang } from "@/lib/usp-zugang";
+import { seitenMeta } from "@/lib/seo";
 import Werkzeug from "./werkzeug";
 import styles from "./vokabeln-aus-text.module.css";
 
@@ -65,28 +66,12 @@ export async function generateMetadata({
    */
   const offen = (await zugang(searchParams)).indexieren;
 
-  return {
-    title: TITEL,
-    description: BESCHREIBUNG,
-    alternates: { canonical: "/vokabeln-aus-text" },
-    robots: offen ? { index: true, follow: true } : { index: false, follow: false },
-    /*
-     * Ein eigenes openGraph, obwohl das Layout schon eines hat: ohne dieses
-     * Block teilt ein Link auf diese Seite Titel, Beschreibung und URL der
-     * STARTSEITE – Next ersetzt die Gruppe "openGraph" beim Seitenwechsel
-     * komplett, es gibt kein Zusammenführen. Derselbe Grund wie auf
-     * /quellen.
-     */
-    openGraph: {
-      title: TITEL,
-      description: BESCHREIBUNG,
-      type: "website",
-      url: "/vokabeln-aus-text",
-      siteName: "Lexio",
-      locale: "de_DE",
-      images: ["/images/og-1200x630.png"],
-    },
-  };
+  return seitenMeta({
+    titel: TITEL,
+    beschreibung: BESCHREIBUNG,
+    pfad: "/vokabeln-aus-text",
+    indexieren: offen,
+  });
 }
 
 /**

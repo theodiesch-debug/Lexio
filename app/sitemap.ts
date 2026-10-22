@@ -44,11 +44,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
   });
   if (zugang.indexieren) routes.push("/vokabeln-aus-text");
 
-  const now = new Date();
-
+  /*
+   * Bewusst ohne `lastModified`.
+   *
+   * Vorher stand hier `lastModified: new Date()` – bei JEDEM Abruf die
+   * aktuelle Zeit. Die Route laeuft dynamisch, die Angabe war also immer
+   * "gerade eben geaendert". Eine Aenderungszeit, die sich nie aendert und
+   * nie stimmt, ist keine Auskunft, sondern Rauschen: Google verwirft ein
+   * `lastmod` als unzuverlaessig, sobald es offensichtlich falsch ist, und
+   * ignoriert das Feld danach ganz. Ohne die Angabe greift Googles eigene
+   * Crawl-Heuristik – ehrlicher und am Ende wirksamer.
+   */
   return routes.map((route) => ({
     url: `${SITE_URL}${route}`,
-    lastModified: now,
   }));
 }
 

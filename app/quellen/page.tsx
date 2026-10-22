@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { seitenMeta } from "@/lib/seo";
 import styles from "./quellen.module.css";
 
 /**
@@ -21,35 +22,18 @@ import styles from "./quellen.module.css";
  * es im Produkt sonst nirgends nachlesbar waere.
  */
 
-export const metadata: Metadata = {
+export const metadata: Metadata = seitenMeta({
     /*
      * Ohne den Markennamen im Titel: app/layout.tsx haengt per
      * `title.template` " · Lexio" an jeden Seitentitel. Ein Titel, der den
      * Namen schon selbst traegt, ergibt sonst "Quellen der Wortlisten – Lexio
      * · Lexio". Genau das stand dort zuerst.
      */
-    title: "Quellen der Wortlisten",
-    description:
+    titel: "Quellen der Wortlisten",
+    beschreibung:
         "Woher die englischen Wortlisten in Lexio kommen: NGSL, Kaikki/Wiktionary und Tatoeba – mit Lizenzen und Quellenangabe.",
-    alternates: { canonical: "/quellen" },
-    /*
-     * Ein eigenes openGraph, obwohl das Layout schon eines hat: ohne dieses
-     * Block hier teilte ein Link auf diese Seite den Titel, die Beschreibung
-     * und die URL der STARTSEITE – Next ersetzt die Gruppe "openGraph" beim
-     * Seitenwechsel komplett, es gibt kein Zusammenfuehren. Wer die
-     * Quellenangabe teilt, soll auf die Quellenangabe zeigen, nicht auf "/".
-     */
-    openGraph: {
-        title: "Quellen der Wortlisten",
-        description:
-            "Woher die englischen Wortlisten in Lexio kommen: NGSL, Kaikki/Wiktionary und Tatoeba – mit Lizenzen und Quellenangabe.",
-        type: "website",
-        url: "/quellen",
-        siteName: "Lexio",
-        locale: "de_DE",
-        images: ["/images/og-1200x630.png"],
-    },
-};
+    pfad: "/quellen",
+});
 
 const QUELLEN = [
     {

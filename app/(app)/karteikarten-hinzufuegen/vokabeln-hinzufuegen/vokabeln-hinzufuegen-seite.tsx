@@ -991,7 +991,7 @@ export default function VokabelnHinzufuegenSeite() {
                         </svg>
                     </button>
                     <div>
-                        <h2 className={styles.titel}>Gespeichert</h2>
+                        <h1 className={styles.titel}>Gespeichert</h1>
                         <p className={styles.untertitel}>
                             {fertig.anzahl} {fertig.anzahl === 1 ? "Wort" : "Wörter"} in {fertig.name}
                         </p>
@@ -1056,7 +1056,7 @@ export default function VokabelnHinzufuegenSeite() {
                         </svg>
                     </button>
                     <div>
-                        <h2 className={styles.titel}>{SCHRITT_TITEL[1]}</h2>
+                        <h1 className={styles.titel}>{SCHRITT_TITEL[1]}</h1>
                         <p className={styles.untertitel}>
                             {zaehler > 0
                                 ? `${zaehler} ${zaehler === 1 ? "Wort gespeichert" : "Wörter gespeichert"}`
@@ -1176,7 +1176,7 @@ export default function VokabelnHinzufuegenSeite() {
                         </svg>
                     </button>
                     <div>
-                        <h2 className={styles.titel}>{SCHRITT_TITEL[2]}</h2>
+                        <h1 className={styles.titel}>{SCHRITT_TITEL[2]}</h1>
                         <p className={styles.untertitel}>
                             {gewaehltesSet
                                 ? `Neue Wörter für ${gewaehltesSet.name}`
@@ -1712,7 +1712,7 @@ export default function VokabelnHinzufuegenSeite() {
                     </svg>
                 </button>
                 <div>
-                    <h2 className={styles.titel}>{SCHRITT_TITEL[3]}</h2>
+                    <h1 className={styles.titel}>{SCHRITT_TITEL[3]}</h1>
                     <p className={styles.untertitel}>
                         {gefuelltePaare.length} {gefuelltePaare.length === 1 ? "Wort" : "Wörter"} bereit
                     </p>

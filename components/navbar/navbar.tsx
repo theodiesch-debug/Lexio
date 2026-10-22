@@ -155,7 +155,15 @@ export default async function Navbar() {
                         priority
                     />
                 </Link>
-                <h4 className="title">Lexio</h4>
+                {/*
+                 * Der Markenname ist eine Ueberschrift in der Optik, aber
+                 * keine im Dokument: er steht auf JEDER Seite und stuende
+                 * damit vor dem eigentlichen <h1> der Seite. Ein Screenreader
+                 * und Google finden dann zwei "erste" Ueberschriften, die
+                 * zweite in der falschen Reihenfolge. Die Klasse bleibt, das
+                 * Element wird ein <span>.
+                 */}
+                <span className="title">Lexio</span>
             </div>
 
             <div className="side-bar-menu">

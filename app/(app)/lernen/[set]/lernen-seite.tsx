@@ -1099,6 +1099,16 @@ if (karten.length === 0) {
 
     return (
         <div className={styles.seite}>
+            {/*
+             * Die Lernseite hat keine sichtbare Ueberschrift – die Karte ist
+             * die Seite. Fuer Screenreader und die Dokumentstruktur fehlt
+             * damit aber die <h1>: eine Seite ohne erste Ueberschrift ist im
+             * Vorlesemodus orientierungslos. Deshalb eine nur fuer
+             * Screenreader sichtbare <h1> mit dem Namen des Sets.
+             */}
+            <h1 className={styles.nurVorlesen}>
+                Lernen: {set?.name ?? "Set"}
+            </h1>
             <header className={styles.kopf}>
                 <button
                     type="button"

@@ -249,13 +249,13 @@ export default function Einstellungen() {
     return (
         <div className="einstellungen">
             <div className="kopfzeile">
-                <h4 className="überschrift">Einstellungen</h4>
+                <h1 className="überschrift">Einstellungen</h1>
                 <p className="unterüberschrift">Passe Lexio an deine Bedürfnisse an</p>
             </div>
 
             <div className="main-content">
                 <div className="allgemein">
-                    <h4 className="text-prog">Allgemein</h4>
+                    <h2 className="text-prog">Allgemein</h2>
 
                     <label className="überschrift-sprache" htmlFor="design">
                         Design
@@ -386,7 +386,7 @@ export default function Einstellungen() {
 
                 <div className="restliche-einstellungen">
                     <div className="benarichtigung">
-                <h4 className="text-prog">Benachrichtigung</h4>
+                <h2 className="text-prog">Benachrichtigung</h2>
                 <div className="dayly-reminders">
                     <div>
                         <p className="überschrift-reminder">Tägliche Erinnerung</p>
@@ -418,7 +418,7 @@ export default function Einstellungen() {
             </div>
 
                     <div className="daten">
-                        <h4 className="text-prog">Konto</h4>
+                        <h2 className="text-prog">Konto</h2>
 
                         {/*
                          * Ohne das alte Passwort. `updateUser` verlangt es
@@ -504,7 +504,7 @@ export default function Einstellungen() {
                     </div>
 
                     <div className="sonstiges">
-                        <h4 className="text-prog">Sonstiges</h4>
+                        <h2 className="text-prog">Sonstiges</h2>
                         <div className="about">
                             <div className="about-container">
                                 <p className="überschrift-about">Über Lexio</p>

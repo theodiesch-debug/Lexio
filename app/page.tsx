@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { holeUser } from "@/lib/supabase/user";
+import { seitenMeta } from "@/lib/seo";
 import Kartenzeichen from "@/components/kartenzeichen";
 import { INTERVALLE } from "@/lib/lernlogik";
 import styles from "./landing.module.css";
@@ -36,29 +37,14 @@ import styles from "./landing.module.css";
  *      aus der App in ein Anmeldeformular werfen – dieselbe Sorge, aus der
  *      `lib/supabase/user.ts` die Datei ueberhaupt entstanden ist.
  */
-export const metadata: Metadata = {
-  title: "Lexio – Vokabeln lernen mit Beispielsaetzen",
-  description:
-    "Lexio ist ein Vokabeltrainer für Deutsch und Englisch: Karteikarten mit Beispielsaetzen, gestufte Wiederholung von 1 bis 60 Tagen, Statistiken und eigene Wortlisten.",
-  // Ausdrücklich, auch wenn der Vorgabe schon indexierbar ist: die App trägt
-  // `noindex` zentral, und diese Seite ist genau der Ort, an dem sich das
-  // Gegenteil ausnahmsweise durchsetzen muss.
-  robots: { index: true, follow: true },
-  alternates: { canonical: "/" },
-  openGraph: {
-    title: "Lexio – Vokabeln lernen mit Beispielsaetzen",
-    description:
-      "Karteikarten mit Beispielsaetzen, gestufte Wiederholung und Statistiken. Starte ohne Abo mit einem Set aus 100 englischen Grundworten.",
-    type: "website",
-    // Eigenes openGraph ersetzt das des Layouts vollstaendig (Next mischt
-    // diese Gruppe nicht tief zusammen) – ohne url und images waere der
-    // Share-Link dieser Seite die Startseite und das Vorschaubild fehlte.
-    url: "/",
-    siteName: "Lexio",
-    locale: "de_DE",
-    images: ["/images/og-1200x630.png"],
-  },
-};
+export const metadata: Metadata = seitenMeta({
+  titel: "Lexio – Vokabeln lernen mit Beispielsätzen",
+  // Unter 155 Zeichen gehalten: Google schneidet laengere Beschreibungen ab,
+  // und der Teil hinter dem Schnitt ist verschenkte Muehe.
+  beschreibung:
+    "Vokabeltrainer für Deutsch und Englisch: Karteikarten mit Beispielsätzen, gestufte Wiederholung von 1 bis 60 Tagen, Statistiken und eigene Wortlisten.",
+  pfad: "/",
+});
 
 type Beispiel = {
   id: string;

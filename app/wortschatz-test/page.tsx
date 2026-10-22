@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { headers } from "next/headers";
 import WortschatzTest from "@/components/wortschatz-test/wortschatz-test";
+import { seitenMeta } from "@/lib/seo";
 import styles from "./wortschatz-test.module.css";
 
 /**
@@ -27,24 +28,11 @@ const BESCHREIBUNG =
   "Miss in zwei Minuten deinen englischen Wortschatz: 25 Wörter aus fünf " +
   "Häufigkeitsstufen, ehrlich hochgerechnet. Ohne Konto, ohne Anmeldung.";
 
-export const metadata: Metadata = {
-  title: TITEL,
-  description: BESCHREIBUNG,
-  alternates: { canonical: "/wortschatz-test" },
-  /*
-   * Eigene openGraph-Angaben, wie auf /vokabeln-aus-text und /quellen: ohne
-   * sie teilt ein Link auf diese Seite Titel und Beschreibung der Startseite.
-   */
-  openGraph: {
-    title: TITEL,
-    description: BESCHREIBUNG,
-    type: "website",
-    url: "/wortschatz-test",
-    siteName: "Lexio",
-    locale: "de_DE",
-    images: ["/images/og-1200x630.png"],
-  },
-};
+export const metadata: Metadata = seitenMeta({
+  titel: TITEL,
+  beschreibung: BESCHREIBUNG,
+  pfad: "/wortschatz-test",
+});
 
 /** Sichtbarer Text und JSON-LD aus einer Quelle – siehe /vokabeln-aus-text. */
 const FRAGEN = [

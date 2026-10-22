@@ -262,7 +262,7 @@ export default function WortschatzTest({ variante = "werbung" }: { variante?: Va
         <div className={styles.karte} ref={kartenRef} tabIndex={-1}>
           <p className={styles.karteFrage}>{aufgabe.wort.frage}</p>
           {aufgedeckt ? (
-            <p className={styles.karteAntwort} aria-live="polite">
+            <p className={styles.karteAntwort} aria-live="polite" lang="en">
               {aufgabe.wort.antwort}
             </p>
           ) : (
