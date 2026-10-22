@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { farbeVonSprache, nameVonSprache, type SpracheInfo } from "@/lib/sprachen";
 import { holeJson } from "@/lib/api-client";
@@ -68,8 +68,14 @@ export default function WortschatzSeite() {
     };
   }, []);
 
+  // Bei einigen tausend Woertern haelt `useDeferredValue` das Tippen fluessig:
+  // das Eingabefeld bleibt sofort, die gefilterte Liste darf einen Frame
+  // spaeter nachziehen. Kein Verhaltensunterschied fuer den Nutzer, nur
+  // kein Ruckeln bei langen Listen.
+  const suchBegriff = useDeferredValue(suche);
+
   const gefiltert = useMemo(() => {
-    const begriff = suche.trim().toLowerCase();
+    const begriff = suchBegriff.trim().toLowerCase();
     if (!begriff) return woerter;
     return woerter.filter(
       (w) =>
@@ -77,7 +83,7 @@ export default function WortschatzSeite() {
         w.antwort.toLowerCase().includes(begriff) ||
         (w.beispielsatz ?? "").toLowerCase().includes(begriff),
     );
-  }, [woerter, suche]);
+  }, [woerter, suchBegriff]);
 
   return (
     <div className={styles.wortschatz}>
