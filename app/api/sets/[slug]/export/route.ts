@@ -7,6 +7,7 @@ import {
   type ExportFormat,
   type ExportPaar,
 } from "@/lib/export";
+import { datenbankFehler } from "@/lib/api-fehler";
 
 /**
  * Wie viele Karten ein Export maximal enthält.
@@ -86,7 +87,7 @@ export async function GET(
     .limit(MAX_EXPORT + 1);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return datenbankFehler(error, "sets-export");
   }
 
   const roh = (data ?? []) as unknown as ExportPaar[];

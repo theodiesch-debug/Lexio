@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { mitUserOder401 } from "@/lib/supabase/user";
 import { holeSprachen, verlangteSprache } from "@/lib/sprachen-server";
 import { migrationsMeldung } from "@/lib/db-fehler";
+import { datenbankFehler } from "@/lib/api-fehler";
 
 const MAX_NAME = 60;
 
@@ -40,7 +41,7 @@ async function eigenesSetOderFehler(
     .maybeSingle();
 
   if (error) {
-    return { antwort: NextResponse.json({ error: error.message }, { status: 500 }) };
+    return { antwort: datenbankFehler(error, "sets-slug") };
   }
   if (!data) {
     return { antwort: NextResponse.json({ error: "Set nicht gefunden" }, { status: 404 }) };
@@ -174,7 +175,7 @@ export async function PATCH(
         { status: 403 },
       );
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return datenbankFehler(error, "sets-slug");
   }
 
   return NextResponse.json({ set: data });

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { mitUserOder401 } from "@/lib/supabase/user";
 import { TAGESZIEL_XP } from "@/lib/profil";
 import type { TagesXpTyp } from "@/lib/types";
+import { datenbankFehler } from "@/lib/api-fehler";
 
 export async function GET() {
   const { supabase, antwort: nichtAngemeldet } = await mitUserOder401();
@@ -16,7 +17,7 @@ export async function GET() {
     .maybeSingle();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return datenbankFehler(error, "tages-xp");
   }
 
   /*

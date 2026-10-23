@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { mitUserOder401 } from "@/lib/supabase/user";
 import { migrationsMeldung } from "@/lib/db-fehler";
 import { doppelteIndizes, duplikatMeldung } from "@/lib/karten-duplikat";
+import { datenbankFehler } from "@/lib/api-fehler";
 
 const MAX_LAENGE = 200;
 
@@ -240,7 +241,7 @@ export async function GET(request: Request) {
     if (migration) {
       return NextResponse.json({ error: migration }, { status: 503 });
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return datenbankFehler(error, "karten");
   }
 
   const zeilen = (data ?? []) as unknown as KartenZeile[];
@@ -487,7 +488,7 @@ export async function POST(request: Request) {
     if (error.code === "23505") {
       return NextResponse.json({ error: "Doppeltes Wortpaar", felder: {} }, { status: 400 });
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return datenbankFehler(error, "karten");
   }
 
   return NextResponse.json({ karten: data ?? [], anzahl: sauber.length }, { status: 201 });

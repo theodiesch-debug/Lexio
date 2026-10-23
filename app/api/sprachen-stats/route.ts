@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { mitUserOder401 } from "@/lib/supabase/user";
 import type { SprachStat } from "@/lib/types";
 import { UNBEKANNTE_SPRACHE } from "@/lib/sprachen";
+import { datenbankFehler } from "@/lib/api-fehler";
 
 /**
  * Gelernte Karten und XP je Sprache.
@@ -26,7 +27,7 @@ export async function GET() {
     .order("sprache");
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return datenbankFehler(error, "sprachen-stats");
   }
 
   type Zeile = {

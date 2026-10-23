@@ -3,6 +3,7 @@ import { mitUserOder401 } from "@/lib/supabase/user";
 import { slugifySetzName } from "@/lib/set-slug";
 import { kopieName } from "@/lib/kopie-name";
 import { migrationsMeldung } from "@/lib/db-fehler";
+import { datenbankFehler } from "@/lib/api-fehler";
 
 /** So viele Slug-Varianten werden versucht, bevor es aufgibt. */
 const MAX_VERSUCHE = 20;
@@ -273,7 +274,7 @@ async function setAnlegen(
       if (error.code === "23505") continue;
 
       return {
-        antwort: NextResponse.json({ error: error.message }, { status: 500 }),
+        antwort: datenbankFehler(error, "sets-duplizieren"),
       };
     }
 

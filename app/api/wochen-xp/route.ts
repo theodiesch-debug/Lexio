@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { mitUserOder401 } from "@/lib/supabase/user";
 import type { WochenXpTyp } from "@/lib/types";
+import { datenbankFehler } from "@/lib/api-fehler";
 
 // Index 0 = Sonntag, wie bei Date.getUTCDay()
 const WOCHENTAGE = ["so", "mo", "di", "mi", "do", "fr", "sa"] as const;
@@ -51,7 +52,7 @@ export async function GET() {
     .order("datum");
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return datenbankFehler(error, "wochen-xp");
   }
 
   const wochenXp: WochenXpTyp = { mo: 0, di: 0, mi: 0, do: 0, fr: 0, sa: 0, so: 0 };

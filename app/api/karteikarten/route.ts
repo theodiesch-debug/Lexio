@@ -4,6 +4,7 @@ import type { SpracheInfo } from "@/lib/sprachen";
 import { UNBEKANNTE_SPRACHE } from "@/lib/sprachen";
 import type { SetUebersicht } from "@/lib/types";
 import { migrationsMeldung } from "@/lib/db-fehler";
+import { datenbankFehler } from "@/lib/api-fehler";
 
 /**
  * Die Spalten, die die View seit 006 liefert.
@@ -98,7 +99,7 @@ export async function GET() {
     if (migration) {
       return NextResponse.json({ error: migration }, { status: 503 });
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return datenbankFehler(error, "karteikarten");
   }
 
   /*

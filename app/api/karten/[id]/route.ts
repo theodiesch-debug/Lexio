@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { mitUserOder401 } from "@/lib/supabase/user";
 import { migrationsMeldung } from "@/lib/db-fehler";
 import { doppelteIndizes, duplikatMeldung } from "@/lib/karten-duplikat";
+import { datenbankFehler } from "@/lib/api-fehler";
 
 const MAX_LAENGE = 200;
 const MAX_SATZ = 300;
@@ -58,7 +59,7 @@ async function karteOderFehler(
     .maybeSingle();
 
   if (error) {
-    return { antwort: NextResponse.json({ error: error.message }, { status: 500 }) };
+    return { antwort: datenbankFehler(error, "karten-id") };
   }
   if (!karte) {
     return { antwort: NextResponse.json({ error: "Karte nicht gefunden" }, { status: 404 }) };
@@ -282,7 +283,7 @@ export async function PATCH(
     if (error.code === "23505") {
       return NextResponse.json({ error: "Doppeltes Wortpaar", felder: {} }, { status: 400 });
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return datenbankFehler(error, "karten-id");
   }
 
   return NextResponse.json({ karte: data });
@@ -328,7 +329,7 @@ export async function DELETE(
     .select("id");
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return datenbankFehler(error, "karten-id");
   }
 
   if (!geloescht || geloescht.length === 0) {

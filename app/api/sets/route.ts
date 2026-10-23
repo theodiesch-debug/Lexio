@@ -3,6 +3,7 @@ import { mitUserOder401 } from "@/lib/supabase/user";
 import { slugifySetzName } from "@/lib/set-slug";
 import { holeSprachen, verlangteSprache } from "@/lib/sprachen-server";
 import { migrationsMeldung } from "@/lib/db-fehler";
+import { datenbankFehler } from "@/lib/api-fehler";
 
 const MAX_NAME = 60;
 
@@ -129,7 +130,7 @@ export async function POST(request: Request) {
       // einfach die naechste Variante versuchen statt den Nutzer zu stoeren.
       if (error.code === "23505") continue;
 
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return datenbankFehler(error, "sets");
     }
 
     return NextResponse.json({ set: data }, { status: 201 });

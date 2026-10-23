@@ -3,6 +3,7 @@ import { mitUserOder401 } from "@/lib/supabase/user";
 import type { SpracheInfo } from "@/lib/sprachen";
 import { UNBEKANNTE_SPRACHE } from "@/lib/sprachen";
 import { holeSprachen, spracheNachCode } from "@/lib/sprachen-server";
+import { datenbankFehler } from "@/lib/api-fehler";
 
 /**
  * Obergrenze fuer die Wortliste.
@@ -89,7 +90,7 @@ export async function GET() {
     .limit(MAX_KARTEN);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return datenbankFehler(error, "wortschatz");
   }
 
   // Sprachliste kommt in Ruhe, erst nach den Karten – bei einem Fehler dort
