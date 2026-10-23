@@ -10,7 +10,7 @@
  * Und „Passwort ändern" fehlt, weil die App keine Route dafür hat.
  */
 
-import { FontAwesome6 } from "@expo/vector-icons";
+import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Image, ScrollView, StyleSheet, Text, View } from "react-native";

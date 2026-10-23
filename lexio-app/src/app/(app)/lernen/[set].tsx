@@ -15,7 +15,7 @@ import { BEWERTUNGEN, xpFuerBewertung } from "@lexio/lernlogik";
 import { schwerChance } from "@lexio/reihenfolge";
 import { xpFormatieren } from "@lexio/profil";
 import type { LernAntwort, LernKarte } from "@lexio/types";
-import { FontAwesome6 } from "@expo/vector-icons";
+import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {

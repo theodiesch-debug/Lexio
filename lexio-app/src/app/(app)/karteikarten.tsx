@@ -14,7 +14,7 @@
  * die Zahl wäre dann 0, dieselbe wie bei einem Set ohne XP.
  */
 
-import { FontAwesome6 } from "@expo/vector-icons";
+import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { nameVonSprache, type Sprache, type SpracheInfo } from "@lexio/sprachen";
 import { kopieName } from "@lexio/kopie-name";
 import { router } from "expo-router";

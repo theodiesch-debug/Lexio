@@ -13,7 +13,7 @@
  * füllt das gewählte Set weiter. Leere Beispielsätze gehen als null raus.
  */
 
-import { FontAwesome6 } from "@expo/vector-icons";
+import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import * as ImagePicker from "expo-image-picker";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import { router } from "expo-router";

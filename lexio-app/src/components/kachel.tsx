@@ -10,7 +10,7 @@
  * liegt der Löschknopf dauerhaft unten rechts und öffnet den Dialog.
  */
 
-import { FontAwesome6 } from "@expo/vector-icons";
+import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { SpracheInfo } from "@lexio/sprachen";

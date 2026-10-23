@@ -12,27 +12,23 @@
  * den falschen Schnitt wählen oder synthetisch fett zeichnen.
  */
 
-import {
-    Caveat_400Regular,
-    Caveat_700Bold,
-} from "@expo-google-fonts/caveat";
-import {
-    Fraunces_400Regular,
-    Fraunces_600SemiBold,
-    Fraunces_700Bold,
-} from "@expo-google-fonts/fraunces";
-import {
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
-} from "@expo-google-fonts/inter";
-import {
-    IBMPlexMono_400Regular,
-    IBMPlexMono_500Medium,
-    IBMPlexMono_600SemiBold,
-    IBMPlexMono_700Bold,
-} from "@expo-google-fonts/ibm-plex-mono";
+/*
+ * Importiert wird je Schrift aus dem Gewichts-Unterordner, nicht aus dem
+ * Paket-Index. Der Index eines @expo-google-fonts-Pakets `require`t ALLE
+ * Schnitte (Inter allein 18 Dateien, inklusive Kursiv). Metro kann solche
+ * `require`-Aufrufe nicht wegoptimieren – so lagen im fertigen APK 14,9 MB
+ * Schriften, von denen die App neun braucht. Ueber den Unterordner landet
+ * nur die eine .ttf im Bundle.
+ */
+import { Caveat_700Bold } from "@expo-google-fonts/caveat/700Bold";
+import { Fraunces_700Bold } from "@expo-google-fonts/fraunces/700Bold";
+import { Inter_400Regular } from "@expo-google-fonts/inter/400Regular";
+import { Inter_500Medium } from "@expo-google-fonts/inter/500Medium";
+import { Inter_600SemiBold } from "@expo-google-fonts/inter/600SemiBold";
+import { Inter_700Bold } from "@expo-google-fonts/inter/700Bold";
+import { IBMPlexMono_400Regular } from "@expo-google-fonts/ibm-plex-mono/400Regular";
+import { IBMPlexMono_500Medium } from "@expo-google-fonts/ibm-plex-mono/500Medium";
+import { IBMPlexMono_700Bold } from "@expo-google-fonts/ibm-plex-mono/700Bold";
 import { useFonts } from "expo-font";
 
 /** Sans (Inter). Fließtext, Bedienelemente, Navigation. */
@@ -45,8 +41,6 @@ export const SANS = {
 
 /** Serif (Fraunces). Überschriften und Seitentitel. */
 export const SERIF = {
-    regular: "Fraunces_400Regular",
-    semibold: "Fraunces_600SemiBold",
     bold: "Fraunces_700Bold",
 } as const;
 
@@ -54,13 +48,11 @@ export const SERIF = {
 export const MONO = {
     regular: "IBMPlexMono_400Regular",
     medium: "IBMPlexMono_500Medium",
-    semibold: "IBMPlexMono_600SemiBold",
     bold: "IBMPlexMono_700Bold",
 } as const;
 
 /** Caveat. Handschriftmomente: Logo, Set-Name, Kartenwort, Endtitel. */
 export const CAVEAT = {
-    regular: "Caveat_400Regular",
     bold: "Caveat_700Bold",
 } as const;
 
@@ -70,14 +62,10 @@ export const SCHRIFT_KATALOG = {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
-    Fraunces_400Regular,
-    Fraunces_600SemiBold,
     Fraunces_700Bold,
     IBMPlexMono_400Regular,
     IBMPlexMono_500Medium,
-    IBMPlexMono_600SemiBold,
     IBMPlexMono_700Bold,
-    Caveat_400Regular,
     Caveat_700Bold,
 } as const;
 

@@ -16,7 +16,7 @@
  *     Browser). Die App prüft die Datenbank ohnehin über die API.
  */
 
-import { FontAwesome6 } from "@expo/vector-icons";
+import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { MIN_PASSWORT, PASSWORT_FEHLER } from "@lexio/passwort";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";

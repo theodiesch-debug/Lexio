@@ -22,7 +22,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
-import { FontAwesome6 } from "@expo/vector-icons";
+import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 
 import { Knopf } from "@/components/knopf";
 import { Karte } from "@/components/karte";

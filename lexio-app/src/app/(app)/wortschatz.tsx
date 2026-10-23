@@ -12,7 +12,7 @@
  * Geräte bekommen hier dieselbe gestapelte Form statt eines zweiten Layouts.
  */
 
-import { FontAwesome6 } from "@expo/vector-icons";
+import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { nameVonSprache, type SpracheInfo } from "@lexio/sprachen";
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
