@@ -7,9 +7,12 @@
  * ohne sofortige Sitzung folgt die „Fast geschafft"-Karte.
  *
  * Abweichungen zum Web, bewusst:
- *   - Keine OAuth-Anbieterknöpfe. Die brauchen in Expo einen eigenen
- *     AuthSession- und Deep-Link-Aufbau; die Anmeldung mit E-Mail und Passwort
- *     funktioniert ohne ihn vollständig.
+ *   - Google ist der einzige Anmeldeanbieter hier. Im Web stehen alle, weil
+ *     jeder davon nur eine Zeile im Dashboard braucht. In der App braucht
+ *     jeder zusaetzliche Anbieter denselben Rundlauf, und Google ist der, den
+ *     die Leute tatsaechlich benutzen. Der Knopf erscheint nur, wenn
+ *     `/api/gesundheit` den Anbieter als freigeschaltet meldet – sonst waere
+ *     er ein Knopf, der eine Dashboard-Meldung zeigt.
  *   - Kein „Passwort vergessen?": der Web-Link führt auf eine eigene Seite, die
  *     es hier nicht gibt. Ein toter Verweis wäre schlimmer als keiner.
  *   - Kein SetupHinweis: das ist eine Web-Komponente (Mail-/Dashboard-Sonde am
@@ -18,7 +21,9 @@
 
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { MIN_PASSWORT, PASSWORT_FEHLER } from "@lexio/passwort";
+import * as Linking from "expo-linking";
 import { router } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -39,6 +44,7 @@ import { Knopf } from "@/components/knopf";
 import { CAVEAT, SANS, SERIF } from "@/design/schrift";
 import { useDesign } from "@/design/theme";
 import { ABSTAND, RADIUS } from "@/design/tokens";
+import { holeJson } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 
 const LOGO = require("../../assets/images/lexio-logo.png");
@@ -88,11 +94,27 @@ export default function Anmelden() {
   const [busy, setBusy] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
   const [gesendet, setGesendet] = useState(false);
+  const [googleBereit, setGoogleBereit] = useState(false);
 
   useEffect(() => {
+    let abgebrochen = false;
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) router.replace("/");
     });
+    /*
+     * Ob es den Google-Knopf geben darf, entscheidet das Supabase-Projekt –
+     * dieselbe Sonde wie im Web. Solange keine Antwort da ist, wird nichts
+     * angezeigt: ein Knopf, der aufpoppt und wieder verschwindet, ist
+     * schlimmer als einer, der einen Augenblick spaeter kommt.
+     */
+    holeJson<{ anmeldung?: { provider?: { google?: boolean } } }>("/api/gesundheit", {})
+      .then((bericht) => {
+        if (!abgebrochen) setGoogleBereit(bericht.anmeldung?.provider?.google === true);
+      })
+      .catch(() => undefined);
+    return () => {
+      abgebrochen = true;
+    };
   }, []);
 
   const wechseln = (neu: Modus) => {
@@ -140,6 +162,60 @@ export default function Anmelden() {
       return;
     }
     router.replace("/");
+  }
+
+  /**
+   * Google-Anmeldung ueber den Systembrowser.
+   *
+   * Kein Google-SDK, kein zweiter Schluessel: Supabase fuehrt den OAuth-
+   * Rundlauf, `openAuthSessionAsync` oeffnet ihn in einem Custom Tab und
+   * faengt die Rueckkehr auf `lexio://auth/callback` ab. Der Code darin wird
+   * gegen die Sitzung getauscht (PKCE, siehe `src/lib/supabase.ts`); der
+   * Code-Verifier liegt in AsyncStorage, nicht in der URL.
+   *
+   * Damit das im gebauten APK ankommt, muss `lexio://auth/callback` im
+   * Supabase-Dashboard unter Authentication → URL Configuration →
+   * Redirect URLs stehen. Fehlt der Eintrag, bricht Supabase mit einer
+   * Fehlerseite ab – der Knopf ist dann nicht kaputt, die Freigabe fehlt.
+   */
+  async function mitGoogle() {
+    setBusy(true);
+    setFehler(null);
+    try {
+      const redirectTo = Linking.createURL("auth/callback");
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo, skipBrowserRedirect: true },
+      });
+      if (error || !data.url) {
+        setFehler("Die Anmeldung mit Google konnte nicht gestartet werden.");
+        return;
+      }
+
+      const ergebnis = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+      // Abgebrochen oder weggewischt: kein Fehler, der Nutzer wollte nicht.
+      if (ergebnis.type !== "success") return;
+
+      const { queryParams } = Linking.parse(ergebnis.url);
+      const code = typeof queryParams?.code === "string" ? queryParams.code : null;
+      if (!code) {
+        const grund =
+          typeof queryParams?.error_description === "string"
+            ? queryParams.error_description
+            : null;
+        setFehler(grund ?? "Die Anmeldung mit Google ist nicht durchgelaufen.");
+        return;
+      }
+
+      const { error: tauschFehler } = await supabase.auth.exchangeCodeForSession(code);
+      if (tauschFehler) {
+        setFehler(uebersetzeFehler(tauschFehler.message, true));
+        return;
+      }
+      router.replace("/");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -239,6 +315,32 @@ export default function Anmelden() {
                     <FontAwesome6 name="circle-exclamation" size={14} color={farben.terracotta} />
                     <Text style={[styles.fehlerText, { color: farben.terracotta }]}>{fehler}</Text>
                   </View>
+                ) : null}
+
+                {googleBereit ? (
+                  <>
+                    <Knopf
+                      variante="rand"
+                      form="eckig"
+                      hoehe={50}
+                      disabled={busy}
+                      onPress={() => void mitGoogle()}
+                      accessibilityLabel="Mit Google anmelden"
+                      style={styles.googleKnopf}
+                    >
+                      <FontAwesome6 name="google" size={16} color={farben.textPrimary} />
+                      <Text style={[styles.googleText, { color: farben.textPrimary }]}>
+                        Mit Google anmelden
+                      </Text>
+                    </Knopf>
+                    <View style={styles.trenner}>
+                      <View style={[styles.trennerLinie, { backgroundColor: farben.line }]} />
+                      <Text style={[styles.trennerText, { color: farben.textMuted }]}>
+                        oder mit E-Mail
+                      </Text>
+                      <View style={[styles.trennerLinie, { backgroundColor: farben.line }]} />
+                    </View>
+                  </>
                 ) : null}
 
                 <View style={styles.form}>
@@ -488,6 +590,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   fehlerText: { fontFamily: SANS.regular, fontSize: 13, lineHeight: 19, flexShrink: 1 },
+
+  googleKnopf: { marginTop: ABSTAND.md },
+  googleText: { fontFamily: SANS.semibold, fontSize: 15 },
+  trenner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: ABSTAND.sm,
+    marginTop: ABSTAND.lg,
+    marginBottom: ABSTAND.sm,
+  },
+  trennerLinie: { flex: 1, height: StyleSheet.hairlineWidth },
+  trennerText: { fontFamily: SANS.regular, fontSize: 12, letterSpacing: 0.3 },
 
   form: { gap: ABSTAND.lg },
   feld: { gap: 6 },
