@@ -24,7 +24,18 @@ import "@/app/styles/global.css";
  * externer Request beim Laden, kein Flackern, und die Seite haengt nicht
  * daran, dass cdnjs erreichbar ist.
  */
-import "@fortawesome/fontawesome-free/css/all.min.css";
+/*
+ * Nur Solid und Regular, nicht `all`.
+ *
+ * `all.min.css` (88 KB) zieht zusaetzlich die Brands-Schrift (113 KB) und
+ * die v4-Kompatibilitaet (4 KB) mit. In `app/` und `components/` kommt kein
+ * `fa-brands` vor, nur `fa-solid` (64 Stellen) und `fa-regular` (2, die
+ * Augen-Symbole beim Passwort). Core + die zwei gebrauchten Stile sind
+ * 72 KB statt 88 KB, und der Browser laedt keine Brands-Datei.
+ */
+import "@fortawesome/fontawesome-free/css/fontawesome.min.css";
+import "@fortawesome/fontawesome-free/css/solid.min.css";
+import "@fortawesome/fontawesome-free/css/regular.min.css";
 
 /*
  * Vier Schriften, die das Design benutzt.

@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { levelInfo, xpFormatieren } from "@/lib/profil";
 import { IconFlamme } from "@/components/icone";
 import styles from "./profil-karte.module.css";
@@ -76,6 +75,16 @@ export default function ProfilKarte({ daten }: { daten: ProfilDaten }) {
 
     async function abmelden() {
         setMeldung("Abmelden…");
+        /*
+         * Supabase erst hier laden, nicht beim Seitenaufbau.
+         *
+         * Die Profilkarte steht in der Navigation jeder angemeldeten Seite.
+         * Ein statischer Import zog deshalb supabase-js (~70 KB gzip) in
+         * den ersten Ladevorgang jeder Seite – fuer eine Funktion, die erst
+         * beim Klick auf "Abmelden" gebraucht wird. Der dynamische Import
+         * liegt in einem eigenen Chunk und kommt erst dann.
+         */
+        const { createClient } = await import("@/lib/supabase/client");
         // Fehler werden bewusst geschluckt: was danach passiert, ist
         // ohnehin /anmelden. Ein Fehlertext an dieser Stelle wuerde nur
         // stehen bleiben, bis die Seite ohnehin neu laedt.

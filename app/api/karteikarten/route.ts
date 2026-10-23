@@ -75,10 +75,21 @@ export async function GET() {
   const { supabase, user, antwort: nichtAngemeldet } = await mitUserOder401();
   if (nichtAngemeldet) return nichtAngemeldet;
 
-  const { data, error } = await supabase
-    .from("karteikarten_sets_uebersicht")
-    .select(SPALTEN)
-    .order("name");
+  /*
+   * Beide Abfragen haengen nur an der Person, nicht voneinander. Vorher lief
+   * die Quael-Abfrage erst, nachdem die Uebersicht da war – ein zusätzlicher
+   * Netzweg auf jeder Startseite. `Promise.all` schickt sie gleichzeitig los.
+   */
+  const [uebersicht, quael] = await Promise.all([
+    supabase.from("karteikarten_sets_uebersicht").select(SPALTEN).order("name"),
+    supabase
+      .from("karten_fortschritt")
+      .select("fehler, karten!inner(karteikarten_sets!inner(slug))")
+      .eq("user_id", user.id)
+      .gte("fehler", 1),
+  ]);
+
+  const { data, error } = uebersicht;
 
   if (error) {
     /*
@@ -121,12 +132,7 @@ export async function GET() {
     karten: { karteikarten_sets: { slug: string } | null } | null;
   };
   const quaelProSet = new Map<string, number>();
-  const { data: quaelDaten } = await supabase
-    .from("karten_fortschritt")
-    .select("fehler, karten!inner(karteikarten_sets!inner(slug))")
-    .eq("user_id", user.id)
-    .gte("fehler", 1);
-  for (const zeile of (quaelDaten ?? []) as unknown as QuaelZeile[]) {
+  for (const zeile of (quael.data ?? []) as unknown as QuaelZeile[]) {
     const slug = zeile.karten?.karteikarten_sets?.slug;
     if (!slug) continue;
     quaelProSet.set(slug, (quaelProSet.get(slug) ?? 0) + 1);
