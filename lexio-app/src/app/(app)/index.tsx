@@ -273,13 +273,23 @@ export default function Uebersicht() {
                         />
                     ) : (
                         <View style={styles.raster}>
-                            <Animated.View entering={FadeInDown.delay(0).duration(240)}>
-                    <Pressable
-                        onPress={() => router.push("/hinzufuegen")}
-                        accessibilityRole="button"
-                        accessibilityLabel="Neues Set anlegen"
-                        style={[styles.neuKachel, { borderColor: farben.line, width: "48%" }]}
-                    >
+                            {/*
+                             * Der Wrapper traegt die 48 %, nicht die Kachel.
+                             * Vorher war der Wrapper breitenlos und die
+                             * Kachel darin 48 % – 48 % von „so breit wie der
+                             * Inhalt" ist keine Zahl, die man vorhersagen
+                             * kann.
+                             */}
+                            <Animated.View
+                                entering={FadeInDown.delay(0).duration(240)}
+                                style={styles.rasterZelle}
+                            >
+                                <Pressable
+                                    onPress={() => router.push("/hinzufuegen")}
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Neues Set anlegen"
+                                    style={[styles.neuKachel, { borderColor: farben.line }]}
+                                >
                                     <FontAwesome6 name="plus" size={20} color={farben.textSecondary} />
                                     <Text style={[styles.neuText, { color: farben.textSecondary }]}>
                                         Neues Set
@@ -291,7 +301,7 @@ export default function Uebersicht() {
                                 <Animated.View
                                     key={set.id}
                                     entering={FadeInDown.delay(40 + Math.min(idx, 8) * 40).duration(260)}
-                                    style={{ width: "48%", flexBasis: "48%" }}
+                                    style={styles.rasterZelle}
                                 >
                                     <SetKachel
                                         set={set}
@@ -387,15 +397,26 @@ const styles = StyleSheet.create({
     },
     abschnittTitel: { fontFamily: SERIF.bold, fontSize: 24 },
     abschnittHinweis: { fontFamily: SANS.regular, fontSize: 14 },
-                raster: {
-                    flexDirection: "row",
-                    flexWrap: "wrap",
-                    gap: ABSTAND.md,
-                    justifyContent: "flex-start",
-                },
+                /*
+     * Zwei Spalten, ohne Ueberlauf.
+     *
+     * Stand hier `gap`, teilte sich der Rest der Zeile so auf: zweimal 48 %
+     * plus 16 px Abstand. 96 % + 16 px ist auf einem Handy breiter als die
+     * Zeile – die zweite Kachel rutschte also in die naechste Zeile und das
+     * Raster wurde einspaltig. `rowGap` wirkt nur zwischen Zeilen und laesst
+     * die Breite in Ruhe; den waagerechten Abstand macht `space-between`
+     * aus den freien vier Prozent.
+     */
+    raster: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        rowGap: ABSTAND.md,
+        justifyContent: "space-between",
+    },
+    rasterZelle: { width: "48%" },
     skelett: { width: "48%", aspectRatio: 1 },
     neuKachel: {
-        width: "48%",
+        width: "100%",
         aspectRatio: 1,
         borderWidth: 2,
         borderStyle: "dashed",

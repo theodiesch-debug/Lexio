@@ -47,6 +47,8 @@ export function SetKachel({ set, onLernen, onLoeschen }: Props) {
     const akzent = set.sprache?.akzent || "#E7B14A";
     const ohneKarten = set.kartenGesamt === 0;
     const anteil = Math.min(1, Math.max(0, set.setLevelAnteil));
+    const hatFaellig = set.kartenFaellig > 0;
+    const loeschbar = Boolean(set.eigen && onLoeschen);
 
     return (
         <View style={[styles.kachel, { backgroundColor: farbe }]}>
@@ -61,7 +63,10 @@ export function SetKachel({ set, onLernen, onLoeschen }: Props) {
                 }
                 style={styles.innen}
             >
-                <Text numberOfLines={1} style={styles.sprache}>
+                <Text
+                    numberOfLines={1}
+                    style={[styles.sprache, hatFaellig ? styles.spracheMitChip : null]}
+                >
                     {set.sprache?.name || "Ohne Sprache"}
                 </Text>
                 <Text numberOfLines={2} style={styles.name}>
@@ -76,7 +81,7 @@ export function SetKachel({ set, onLernen, onLoeschen }: Props) {
                     </Text>
                 ) : null}
 
-                <View style={styles.stufen}>
+                <View style={[styles.stufen, loeschbar ? styles.stufenMitKnopf : null]}>
                     {[0, 1, 2, 3, 4, 5, 6].map((i) => (
                         <View key={i} style={styles.stufe}>
                             {i < set.setLevel ? (
@@ -97,13 +102,13 @@ export function SetKachel({ set, onLernen, onLoeschen }: Props) {
                 </View>
             </Pressable>
 
-            {set.kartenFaellig > 0 ? (
+            {hatFaellig ? (
                 <View style={styles.faellig}>
                     <Text style={styles.faelligText}>{set.kartenFaellig} fällig</Text>
                 </View>
             ) : null}
 
-            {set.eigen && onLoeschen ? (
+            {loeschbar ? (
                 <Pressable
                     onPress={onLoeschen}
                     accessibilityRole="button"
@@ -120,7 +125,13 @@ export function SetKachel({ set, onLernen, onLoeschen }: Props) {
 
 const styles = StyleSheet.create({
     kachel: {
-        width: "48%",
+        /*
+         * Die Breite macht das Raster: der Wrapper in index.tsx ist 48 %
+         * breit, die Kachel fuellt ihn ganz. Stand hier ebenfalls 48 %,
+         * bekam jede Kachel 48 % von 48 % – also knapp ein Viertel der
+         * Zeile, ein Viertel-Quadrat mit viel leerem Raum daneben.
+         */
+        width: "100%",
         aspectRatio: 1,
         borderRadius: RADIUS.kachel,
         borderWidth: 1,
@@ -129,7 +140,12 @@ const styles = StyleSheet.create({
     },
     innen: {
         flex: 1,
-        padding: 14,
+        /*
+         * 12 statt 14: die Kachel ist ein Quadrat, und bei einem zweizeiligen
+         * Set-Namen lief der Inhalt unten aus dem Quadrat heraus – die
+         * Stufenleiter wurde abgeschnitten.
+         */
+        padding: 12,
         justifyContent: "flex-start",
     },
     sprache: {
@@ -141,8 +157,10 @@ const styles = StyleSheet.create({
     },
     name: {
         fontFamily: CAVEAT.bold,
-        fontSize: 26,
-        lineHeight: 28,
+        // 24/26 statt 26/28: zwei Zeilen bleiben in der quadratischen Kachel
+        // und lassen der Stufenleiter noch Platz.
+        fontSize: 24,
+        lineHeight: 26,
         color: TINTE,
         marginTop: 2,
     },
@@ -158,10 +176,20 @@ const styles = StyleSheet.create({
         color: TINTE_SOFT,
         marginTop: 2,
     },
+    spracheMitChip: {
+        // Der "fällig"-Chip steht absolut oben rechts. Ohne diesen Abstand
+        // lief eine lange Sprachenbezeichnung darunter durch.
+        paddingRight: 78,
+    },
     stufen: {
         flexDirection: "row",
         gap: 3,
         marginTop: 10,
+    },
+    stufenMitKnopf: {
+        // Der Loeschknopf liegt unten rechts ueber der Kachel. Ohne
+        // Abstand deckte er die letzten beiden Stufen ab.
+        paddingRight: 36,
     },
     stufe: {
         flex: 1,
