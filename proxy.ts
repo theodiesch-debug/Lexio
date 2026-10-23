@@ -71,8 +71,68 @@ const GRENZEN: Record<string, number> = {
   lesen: 120,
 };
 
-/** IP-scharfer Speicher: Schluessel = ip|gruppe. */
+/*
+ * Grenzen fuer angemeldete App-Anfragen, pro Token statt pro IP.
+ *
+ * Eine Lernrunde schreibt schneller als 30-mal pro Minute, deshalb braucht
+ * die App ein eigenes, groesseres Fenster. Es ist aber ein Fenster: vorher
+ * fuehrte JEDER Request mit einem `Authorization: Bearer …`-Header ohne
+ * jede Pruefung am Limiter vorbei – ein beliebiger, auch erfundener Token
+ * genuegte. Das war kein Schlupfloch fuer die App, sondern eines fuer alle.
+ */
+const GRENZEN_TOKEN: Record<string, number> = {
+  auth: 20,
+  gesundheit: 120,
+  schreiben: 240,
+  lesen: 600,
+};
+
+/*
+ * Der Speicher ist in-process und waechst mit jedem neuen Schluessel. Ohne
+ * Aufraeumen bleibt jede abgelaufene IP fuer die Lebensdauer des Prozesses
+ * liegen – bei frei waehlbarem `X-Forwarded-For` ist das ein Weg, den
+ * Arbeitsspeicher vollzuschreiben. Deshalb: ab dieser Groesse wird
+ * ausgesiebt, und wenn das nicht reicht, faengt der Zaehler von vorn an.
+ * Ein kurzer Verlust der Zaehlung ist besser als ein toter Prozess.
+ */
+const MAX_EIMER = 10_000;
+const MAX_EIMER_HART = 50_000;
+
+/** IP- bzw. token-scharfer Speicher: Schluessel = kennung|gruppe. */
 const speicher = new Map<string, Eimer>();
+
+function aufraeumen(jetzt: number): void {
+  if (speicher.size < MAX_EIMER) return;
+  for (const [schluessel, eimer] of speicher) {
+    if (jetzt - eimer.fensterStart >= FENSTER_MS) speicher.delete(schluessel);
+  }
+  if (speicher.size > MAX_EIMER_HART) speicher.clear();
+}
+
+/**
+ * Kennung eines Bearer-Tokens fuer den Zaehler.
+ *
+ * Gespeichert wird ein Hash, nicht der Token selbst: der Schluessel der Map
+ * soll niemandem, der sie im Speicher sieht, eine gueltige Sitzung geben.
+ * Die Pruefung der Signatur macht die Datenbank (RLS); hier geht es nur
+ * darum, verschiedene Tokens nicht in einen Topf zu werfen.
+ */
+async function tokenKennung(header: string | null): Promise<string | null> {
+  if (!header) return null;
+  const treffer = /^bearer\s+(\S+)$/i.exec(header.trim());
+  if (!treffer) return null;
+  try {
+    const roh = new TextEncoder().encode(treffer[1]);
+    const hash = await crypto.subtle.digest("SHA-256", roh);
+    return Array.from(new Uint8Array(hash))
+      .slice(0, 16)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+  } catch {
+    // Ohne WebCrypto lieber gar nicht begrenzen als alle in einen Topf.
+    return null;
+  }
+}
 
 function gruppe(weg: string, methode: string): string {
   if (weg.startsWith("/api/auth")) return "auth";
@@ -91,14 +151,21 @@ function ip(request: NextRequest): string {
   return "kein-forwarding";
 }
 
-function rateLimit(request: NextRequest): NextResponse {
+function rateLimit(request: NextRequest, kennung: string | null = null): NextResponse {
   const weg = request.nextUrl.pathname;
 
   const gruppenName = gruppe(weg, request.method);
-  const grenze = GRENZEN[gruppenName];
+  /*
+   * Mit Token zaehlt das Fenster pro Token und mit der grosszuegigeren
+   * Grenze; ohne Token pro IP und mit der engen. Beides laeuft durch
+   * denselben Zaehler, nur der Schluessel und die Grenze unterscheiden sich.
+   */
+  const grenze = kennung ? GRENZEN_TOKEN[gruppenName] : GRENZEN[gruppenName];
 
   const jetzt = Date.now();
-  const schluessel = `${ip(request)}|${gruppenName}`;
+  aufraeumen(jetzt);
+
+  const schluessel = `${kennung ? `t:${kennung}` : ip(request)}|${gruppenName}`;
   const eimer = speicher.get(schluessel);
 
   if (!eimer || jetzt - eimer.fensterStart >= FENSTER_MS) {
@@ -183,19 +250,20 @@ function securityHeader(request: NextRequest): NextResponse {
   return response;
 }
 
-export function proxy(request: NextRequest): NextResponse {
+export async function proxy(request: NextRequest): Promise<NextResponse> {
   const weg = request.nextUrl.pathname;
   if (weg.startsWith("/api/")) {
-    // Die App (Phase 7) meldet sich ueber `Authorization: Bearer …` an.
-    // Wer einen gueltigen Token hat, ist an der Datenbank ausgewiesen (RLS
-    // schuetzt den Besitz) – das Limit hier ist fuer anonymen Raubverkehr
-    // gedacht und fuesse die App beim eigenen Lernen (Schreib-Limit 30/Min.)
-    // spiegeln: eine Runde wuerde sich selbst stoppen. Deshalb: Token vor
-    // dem Limiter durch.
-    if (request.headers.get("authorization")?.toLowerCase().startsWith("bearer ")) {
-      return NextResponse.next();
-    }
-    return rateLimit(request);
+    /*
+     * Die App (Phase 7) meldet sich ueber `Authorization: Bearer …` an.
+     * Frueher galt: wer diesen Header setzt, kommt ohne Limit durch – damit
+     * war das Limit fuer jeden offen, der den Header kennt, auch ohne
+     * gueltigen Token. Jetzt wird auch der Token gezaehlt, nur mit einem
+     * eigenen Fenster pro Token und einer Grenze, die eine Lernrunde nicht
+     * ausbremst. Ob der Token echt ist, entscheidet weiterhin die Datenbank
+     * (RLS); hier geht es allein um die Menge.
+     */
+    const kennung = await tokenKennung(request.headers.get("authorization"));
+    return rateLimit(request, kennung);
   }
   return securityHeader(request);
 }
