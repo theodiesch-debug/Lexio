@@ -99,8 +99,12 @@
 }
 
 .knopf {
-    min-height: 36px;
-    padding: 0.35rem 0.8rem;
+    /* 44px statt 36px: der Hinweis steht in der App-Leiste und ist auf dem
+       Handy erreichbar – 36px lagen unter der Tippziel-Grenze. */
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0.35rem 0.9rem;
     border-radius: 8px;
     border: 1px solid var(--border-color, rgba(255, 255, 255, 0.15));
     background: transparent;

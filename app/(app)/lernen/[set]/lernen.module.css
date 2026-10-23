@@ -459,13 +459,19 @@
  */
 .karteTon {
     position: absolute;
-    top: 0.85rem;
-    left: 0.85rem;
+    top: 0.7rem;
+    left: 0.7rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 38px;
-    height: 38px;
+    /*
+     * 44px statt 38px: das ist die Mindestgroesse, an der ein Daumen ein
+     * Ziel zuverlaessig trifft (dieselbe Grenze wie --touch in global.css).
+     * Der Lautsprecher sitzt oben links auf der Karte und wird auf dem
+     * Handy angetippt – 38px waren knapp darunter.
+     */
+    width: 44px;
+    height: 44px;
     border-radius: 999px;
     background: rgba(13, 23, 29, 0.82);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
@@ -554,7 +560,9 @@
 }
 
 .karteZeichenText {
-    font-size: 0.68rem;
+    /* 0.75rem statt 0.68rem: 10,9px war zu klein fuer ein Etikett, das den
+       Schriftzeichen-Tipp benennt. Bei 12px bleibt es in einer Zeile. */
+    font-size: 0.75rem;
     font-weight: 600;
     color: var(--paper-text-soft);
     letter-spacing: 0.04em;
@@ -596,11 +604,24 @@
     background: rgba(184, 66, 84, 0.16);
     border: 1px solid var(--terracotta);
     color: #ffd9de;
-    font-size: 0.62rem;
+    /* 0.7rem statt 0.62rem: das Etikett war mit 9,9px die kleinste Schrift
+       der Karte. Es ist keine Nebensache – es sagt, dass die Karte
+       eingefroren ist – und darf lesbar sein. */
+    font-size: 0.7rem;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     pointer-events: none;
+}
+
+/*
+ * Auf einer aufgedeckten Problemskarte sitzen Lautsprecher (oben links,
+ * 44px) und dieses Etikett beide in der linken oberen Ecke und lagen
+ * uebereinander. Der Lautsprecher bleibt, wo er ist; das Etikett rueckt
+ * rechts daneben. 3.6rem = 0.7rem Abstand + 44px Lautsprecher + etwas Luft.
+ */
+.karteAufgedeckt .karteProblemskarte {
+    left: 3.6rem;
 }
 
 [data-design="hell"] .karteProblemskarte {
@@ -689,7 +710,12 @@
 
 .bewertungMeta {
     font-family: var(--font-mono);
-    font-size: 0.62rem;
+    /* Von 0.62rem (9,9px) auf 0.72rem (11,5px) angehoben: das ist die
+       Zeile "+10 XP · 3 T" unter jeder Bewertung. Sie war die kleinste
+       Schrift der Seite und lag deutlich unter allem, was sonst als
+       lesbar gilt. Die Bewertungsknoepfe sind ohnehin 66-76px hoch und
+       haben Platz. */
+    font-size: 0.72rem;
     opacity: 0.78;
     text-align: center;
     line-height: 1.25;
@@ -765,7 +791,14 @@
     font-size: 0.75rem;
     text-decoration: underline;
     cursor: pointer;
-    padding: 0.2rem 0.4rem;
+    /* 44px hoch, damit "Rückgängig" ein vollwertiges Tippziel ist – als
+       reiner Textlink war es rund 23px hoch. Die Unterstreichung bleibt,
+       damit es wie ein Link aussieht und nicht wie ein Knopf. */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0.2rem 0.6rem;
 }
 
 .undo:hover:not(:disabled) {
@@ -804,7 +837,13 @@
     font-family: inherit;
     font-weight: 600;
     cursor: pointer;
-    padding: 0.3rem 0.8rem;
+    /* Wie .undo: aus der knappen Pille (rund 30px) ein 44px-Tippziel
+       machen, damit "Trotzdem üben" sicher zu treffen ist. */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0.3rem 1rem;
     white-space: nowrap;
     transition: background-color 140ms ease, color 140ms ease;
 }
@@ -1089,7 +1128,7 @@
 }
 
 /* Sehr schmale Geraete: vier Bewertungen bekommen mehr Abstand, die
-   Beschriftung wird kleiner. Zwei Zeilen bei 360px sind vermeidbar. */
+   Beschriftung wird etwas kleiner. Zwei Zeilen bei 360px sind vermeidbar. */
 @media (max-width: 360px) {
     .bewertungen {
         gap: 0.3rem;
@@ -1097,24 +1136,90 @@
     .bewertungLabel {
         font-size: 0.8rem;
     }
-    .bewertungMeta {
-        font-size: 0.55rem;
-    }
+    /*
+     * Hier stand frueher eine eigene Regel fuer .bewertungMeta mit 0.55rem
+     * (8,8px). Das war die kleinste Schrift im ganzen Projekt und stand
+     * genau bei der Breite, die die Abnahme prueft. Es bleibt bei der
+     * gemeinsamen Groesse aus .bewertungMeta.
+     */
 }
 
-/* Querformat auf dem Telefon: die Karte ist links, die Bewertungen rechts.
-   Nebeneinander statt uebereinander, sonst muesste man auf einem Display,
-   das breiter als hoch ist, scrollen, um zu bewerten. */
+/*
+ * Querformat auf dem Telefon: die Karte ist links, die Bewertungen rechts.
+ * Nebeneinander statt uebereinander, sonst muesste man auf einem Display,
+ * das breiter als hoch ist, scrollen, um zu bewerten.
+ *
+ * Vorher stand hier nur ein Kommentar, der genau das versprach, und drei
+ * Regeln, die es nicht taten: `.seite` blieb eine Spalte, die Karte blieb
+ * oben, die Bewertungen darunter. Das Layout ist jetzt wirklich zweispaltig.
+ *
+ * Umgesetzt mit `flex-wrap` statt `grid-template-areas`: die Seite hat
+ * ausser Karte und Aktionen noch Statuszeilen (Fehler, Hinweis,
+ * Leech-Hinweis, Tastaturtipp), deren Anzahl sich zur Laufzeit aendert. In
+ * benannten Grid-Bereichen wuerden mehrere dieser Zeilen uebereinander
+ * liegen; mit Umbruch nehmen sie sich einfach die naechste volle Zeile.
+ */
 @media (orientation: landscape) and (max-height: 560px) {
     .seite {
         max-width: none;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: stretch;
+        align-content: flex-start;
+        gap: 0.6rem;
     }
+
+    /* Kopfzeile (Zurueck, Fortschritt, XP) ueber die volle Breite. */
+    .kopf {
+        flex: 0 0 100%;
+    }
+
+    /* Karte: nimmt den Platz links. `width: auto` ist wichtig – die
+       Grundregel setzt `width: 100%`, und das wuerde in einer Zeile die
+       ganze Breite belegen und die Aktionen in die naechste Zeile schieben. */
     .buehne {
+        flex: 1 1 0;
+        width: auto;
+        min-width: 0;
         align-items: stretch;
     }
+
     .karte {
         max-height: 100%;
-        max-width: 340px;
+        max-width: none;
+    }
+
+    /* Aktionen: feste Spalte rechts, senkrecht zentriert. */
+    .aktionen {
+        flex: 0 0 264px;
+        align-self: center;
+        align-items: center;
+        min-height: 0;
+    }
+
+    /* Der Aufdecken-Knopf darf die schmale Spalte nicht sprengen. */
+    .aufdecken {
+        max-width: 100%;
+    }
+
+    /* Vier Bewertungen in 264px: als 2x2 statt einer Reihe. In einer Reihe
+       waeren sie je rund 60px breit und die Beschriftung braeche um. */
+    .bewertungen {
+        flex-wrap: wrap;
+    }
+
+    .bewertung {
+        flex: 1 1 calc(50% - 0.25rem);
+        min-height: 64px;
+    }
+
+    /* Statuszeilen und Tastaturtipp: eigene volle Zeile unter dem Paar. */
+    .undoleiste,
+    .speicherFehler,
+    .hinweis,
+    .leechHinweis,
+    .tastaturTipp {
+        flex: 0 0 100%;
     }
 }
 
