@@ -82,6 +82,23 @@ const nextConfig: NextConfig = {
                     },
                 ],
             },
+            /*
+             * Der Vokabeltest laedt `wortschatz-test.json` (81 KB) erst beim
+             * Start. Dateien in `public/` gehen mit `max-age=0` hinaus, also
+             * holt jeder Besuch sie neu. Eine Stunde ist kurz genug, dass
+             * eine Aenderung am Korpus nicht lange unsichtbar bleibt, und
+             * lang genug, dass der zweite Besuch sie nicht wieder zieht
+             * (`stale-while-revalidate` deckt den Rest ab).
+             */
+            {
+                source: "/wortschatz-test.json",
+                headers: [
+                    {
+                        key: "Cache-Control",
+                        value: "public, max-age=3600, stale-while-revalidate=86400",
+                    },
+                ],
+            },
         ];
     },
 };

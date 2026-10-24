@@ -29,7 +29,7 @@ import "@/app/styles/global.css";
  *
  * `all.min.css` (88 KB) zieht zusaetzlich die Brands-Schrift (113 KB) und
  * die v4-Kompatibilitaet (4 KB) mit. In `app/` und `components/` kommt kein
- * `fa-brands` vor, nur `fa-solid` (64 Stellen) und `fa-regular` (2, die
+ * `fa-brands` vor, nur `fa-solid` (65 Stellen) und `fa-regular` (2, die
  * Augen-Symbole beim Passwort). Core + die zwei gebrauchten Stile sind
  * 72 KB statt 88 KB, und der Browser laedt keine Brands-Datei.
  */
