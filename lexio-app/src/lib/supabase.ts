@@ -40,7 +40,7 @@ export const supabase = createClient(url ?? "", anonKey ?? "", {
      * Bei implicit stuenden `access_token` und `refresh_token` im Fragment
      * der Rueckkehr-URL – sichtbar fuer alles, was die URL sieht. PKCE legt
      * nur einen Code ab und holt die Sitzung danach mit dem Verifier aus
-     * AsyncStorage (`exchangeCodeForSession` in `app/anmelden.tsx`).
+     * AsyncStorage (`exchangeCodeForSession` in `lexio-app/src/app/anmelden.tsx`).
      */
     flowType: "pkce",
   },
