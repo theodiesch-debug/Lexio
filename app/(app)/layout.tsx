@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import Navbar from "@/components/navbar/navbar";
 import PwaRegistrierung from "@/components/pwa/pwa-registrierung";
 import { SetupHinweis } from "@/components/gesundheit/setup-hinweis";
+import ErststartTour from "@/components/onboarding/erststart-tour";
 
 /**
  * Rahmen aller Seiten, die zur App gehoeren.
@@ -40,6 +41,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <Navbar />
             <main id="inhalt" className="main-body" tabIndex={-1}>
                 <PwaRegistrierung />
+                <ErststartTour />
                 {/*
                  * Nur sichtbar, wenn die Datenbank fehlt. Dann ist die App
                  * nicht benutzbar, und eine leere Liste oder ein 503toast

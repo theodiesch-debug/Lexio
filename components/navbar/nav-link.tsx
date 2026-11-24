@@ -25,6 +25,7 @@ export default function NavLink({
     zusatzKlasse,
     avatarUrl,
     initialen,
+    dataTour,
 }: {
     name: string;
     icon: string;
@@ -50,6 +51,8 @@ export default function NavLink({
     avatarUrl?: string | null;
     /** Ersatz fuer das Bild: erster Buchstabe des Namens. */
     initialen?: string | null;
+    /** Anker für die Erstbenutzungs-Tour. */
+    dataTour?: string;
 }) {
     const pathname = usePathname();
 
@@ -65,6 +68,7 @@ export default function NavLink({
         <Link
             href={href}
             className={klassen.join(" ")}
+            data-tour={dataTour}
             // aria-current ist das, was Screenreader vorlesen. Die
             // Farbmarkierung allein sagt einem Screenreader nichts.
             aria-current={aktiv ? "page" : undefined}

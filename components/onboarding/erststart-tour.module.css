@@ -1,0 +1,125 @@
+.wurzel {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  pointer-events: none;
+}
+
+.schleier {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 14, 18, 0.62);
+  pointer-events: auto;
+  transition: clip-path 220ms ease;
+}
+
+.fokus {
+  position: fixed;
+  border-radius: 14px;
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 0 0 9999px transparent, 0 12px 30px rgba(0,0,0,0.2);
+  transition: top 220ms ease, left 220ms ease, width 220ms ease, height 220ms ease;
+}
+
+.karte {
+  position: fixed;
+  width: min(320px, calc(100vw - 2rem));
+  padding: 1rem 1rem 0.9rem;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-elevated-2) 100%);
+  box-shadow: var(--shadow-card);
+  color: var(--text-primary);
+  pointer-events: auto;
+}
+
+.karteMitte {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.schritt {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gold-dark, var(--gold));
+}
+
+.titel {
+  margin: 0.35rem 0 0;
+  font-family: var(--serif);
+  font-size: 1.45rem;
+  line-height: 1.15;
+}
+
+.text {
+  margin: 0.55rem 0 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.aktionen {
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.rechts {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.leise, .haupt {
+  min-height: 44px;
+  padding: 0.55rem 0.9rem;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.leise {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.haupt {
+  border: none;
+  background: linear-gradient(135deg, #eec878 0%, var(--gold) 55%, var(--gold-dark) 100%);
+  color: #17110a;
+}
+
+.leise:hover { background: var(--bg-elevated-2); color: var(--text-primary); }
+.haupt:hover { filter: brightness(1.04); }
+.leise:focus-visible, .haupt:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+@media (max-width: 860px) {
+  .karte {
+    left: 1rem !important;
+    right: 1rem;
+    bottom: calc(74px + env(safe-area-inset-bottom));
+    top: auto !important;
+    width: auto;
+    transform: none;
+  }
+  .karteMitte {
+    bottom: auto;
+    top: 50% !important;
+    transform: translateY(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .schleier, .fokus { transition: none; }
+}

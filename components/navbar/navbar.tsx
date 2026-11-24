@@ -33,14 +33,14 @@ import type { ProfilDaten } from "./profil-karte";
  * weil die Leiste breiter wuerde als das Label.
  */
 const NAVBAR_ELEMENTE = [
-    { name: "Übersicht", abkuerzung: "Start", icon: "fa-solid fa-house", href: "/" },
-    { name: "Wortschatz", icon: "fa-solid fa-layer-group", href: "/wortschatz" },
-    { name: "Statistiken", icon: "fa-solid fa-chart-simple", href: "/statistiken" },
+    { name: "Übersicht", abkuerzung: "Start", icon: "fa-solid fa-house", href: "/", tour: "uebersicht" },
+    { name: "Wortschatz", icon: "fa-solid fa-layer-group", href: "/wortschatz", tour: "wortschatz" },
+    { name: "Statistiken", icon: "fa-solid fa-chart-simple", href: "/statistiken", tour: "statistiken" },
     // Frueher stand hier "Profil" als Kurzel. Seit es /profil gibt, waeren
     // zwei Eintraege in der unteren Tableiste gleich beschriftet – und der
     // falsche angeklickt. "Mehr" sagt, was der Eintrag ist: der Rest, der
     // sich nicht in eine eigene Kategorie pressen laesst.
-    { name: "Einstellungen", abkuerzung: "Mehr", icon: "fa-solid fa-gear", href: "/einstellungen" },
+    { name: "Einstellungen", abkuerzung: "Mehr", icon: "fa-solid fa-gear", href: "/einstellungen", tour: "einstellungen" },
 ];
 
 /**
@@ -174,6 +174,7 @@ export default async function Navbar() {
                         abkuerzung={element.abkuerzung}
                         icon={element.icon}
                         href={element.href}
+                        dataTour={element.tour}
                     />
                 ))}
 
@@ -189,6 +190,7 @@ export default async function Navbar() {
                     icon="fa-solid fa-plus"
                     href="/karteikarten-hinzufuegen"
                     zusatzKlasse="add"
+                    dataTour="hinzufuegen"
                 />
 
                 {/*
@@ -219,6 +221,7 @@ export default async function Navbar() {
                     avatarUrl={daten.avatarUrl}
                     initialen={daten.vorname ? initialAus(daten.vorname) : null}
                     zusatzKlasse="profil"
+                    dataTour="profil"
                 />
             </div>
 
