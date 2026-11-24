@@ -104,6 +104,20 @@ export default function VokabelnSeite({ setSlug }: { setSlug: string }) {
   const [exportLaeuft, setExportLaeuft] = useState(false);
   const [exportFehler, setExportFehler] = useState<string | null>(null);
 
+  const [podcastOffen, setPodcastOffen] = useState(false);
+  const [podcastGrundsprache, setPodcastGrundsprache] = useState("Deutsch");
+  const [podcastLaeuft, setPodcastLaeuft] = useState(false);
+  const [podcastFehler, setPodcastFehler] = useState<string | null>(null);
+  const [podcast, setPodcast] = useState<{
+    titel: string;
+    skript: string;
+    grundsprache: string;
+    spracheName: string;
+    kartenAnzahl: number;
+    audioVerfuegbar: boolean;
+    audioHinweis: string;
+  } | null>(null);
+
   /*
    * Herunterladen über die Route, nicht aus den bereits geladenen Karten.
    *
@@ -150,6 +164,52 @@ export default function VokabelnSeite({ setSlug }: { setSlug: string }) {
     } finally {
       setExportLaeuft(false);
     }
+  }
+
+  async function podcastErzeugen() {
+    setPodcastFehler(null);
+    setPodcastLaeuft(true);
+    try {
+      const res = await fetch("/api/podcast/skript", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ setSlug, grundsprache: podcastGrundsprache }),
+      });
+      const body = (await res.json().catch(() => null)) as
+        | { error?: string; titel?: string; skript?: string; grundsprache?: string; spracheName?: string; kartenAnzahl?: number; audioVerfuegbar?: boolean; audioHinweis?: string }
+        | null;
+      if (!res.ok || !body?.skript) {
+        throw new Error(body?.error ?? "Der Podcast konnte nicht erzeugt werden.");
+      }
+      setPodcast({
+        titel: body.titel ?? `Lern-Podcast: ${daten?.set.name ?? setSlug}`,
+        skript: body.skript,
+        grundsprache: body.grundsprache ?? podcastGrundsprache,
+        spracheName: body.spracheName ?? "Zielsprache",
+        kartenAnzahl: body.kartenAnzahl ?? 0,
+        audioVerfuegbar: Boolean(body.audioVerfuegbar),
+        audioHinweis: body.audioHinweis ?? "",
+      });
+    } catch (e) {
+      setPodcastFehler(e instanceof Error ? e.message : "Der Podcast konnte nicht erzeugt werden.");
+    } finally {
+      setPodcastLaeuft(false);
+    }
+  }
+
+  function podcastHerunterladen() {
+    if (!podcast) return;
+    const inhalt = `${podcast.titel}\n\nGrundsprache: ${podcast.grundsprache}\nSet: ${daten?.set.name ?? setSlug}\n\n${podcast.skript}\n`;
+    const blob = new Blob([inhalt], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${setSlug}-lern-podcast.txt`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   }
 
   useEffect(() => {
@@ -530,6 +590,74 @@ export default function VokabelnSeite({ setSlug }: { setSlug: string }) {
        * Quizlet vor dem Import nach den Spalten fragt, soll die Antwort
        * schon vor dem Klick gelesen haben und nicht in der Datei suchen.
        */}
+      {alle.length > 0 && (
+        <section className={styles.podcast} aria-labelledby="lern-podcast-titel">
+          <div className={styles.podcastKopf}>
+            <div>
+              <p className={styles.podcastAugenbraue}>Neu</p>
+              <h2 id="lern-podcast-titel" className={styles.podcastTitel}>Lern-Podcast</h2>
+              <p className={styles.podcastText}>
+                Erzeuge ein lernpsychologisch aufgebautes Audio-Skript aus diesem Set. Du wählst die Grundsprache; das Skript kannst du herunterladen.
+              </p>
+            </div>
+            <button
+              type="button"
+              className={styles.knopfLeise}
+              onClick={() => setPodcastOffen((o) => !o)}
+              aria-expanded={podcastOffen}
+            >
+              {podcastOffen ? "Schließen" : "Podcast erstellen"}
+            </button>
+          </div>
+
+          {podcastOffen && (
+            <div className={styles.podcastPanel}>
+              <label className={styles.podcastFeld}>
+                <span className={styles.feldName}>Grundsprache für Erklärungen</span>
+                <input
+                  className={styles.feld}
+                  value={podcastGrundsprache}
+                  onChange={(e) => setPodcastGrundsprache(e.target.value)}
+                  maxLength={40}
+                  placeholder="z. B. Deutsch"
+                  disabled={podcastLaeuft}
+                />
+              </label>
+              <p className={styles.podcastHinweis}>
+                Beispiel: Französische Vokabeln, Grundsprache Deutsch. Das Skript nutzt aktive Abruf-Fragen, kleine Chunks und Wiederholung.
+              </p>
+              <div className={styles.exportKnopfe}>
+                <button
+                  type="button"
+                  className={styles.knopf}
+                  onClick={() => void podcastErzeugen()}
+                  disabled={podcastLaeuft}
+                >
+                  {podcastLaeuft ? "Erzeuge Podcast…" : "Skript erzeugen"}
+                </button>
+                {podcast && (
+                  <button type="button" className={styles.knopfLeise} onClick={podcastHerunterladen}>
+                    Skript herunterladen
+                  </button>
+                )}
+              </div>
+              {podcastFehler && <p className={styles.exportFehler} role="status">{podcastFehler}</p>}
+              {podcast && (
+                <div className={styles.podcastErgebnis}>
+                  <p className={styles.podcastMeta}>
+                    <strong>{podcast.titel}</strong> · {podcast.kartenAnzahl} Vokabeln · Grundsprache {podcast.grundsprache}
+                  </p>
+                  {!podcast.audioVerfuegbar && podcast.audioHinweis && (
+                    <p className={styles.hinweisBox} role="status">{podcast.audioHinweis}</p>
+                  )}
+                  <pre className={styles.podcastSkript}>{podcast.skript}</pre>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+      )}
+
       {alle.length > 0 && (
         <div className={styles.export}>
           <p className={styles.exportText}>
