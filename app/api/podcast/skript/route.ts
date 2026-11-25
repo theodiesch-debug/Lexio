@@ -118,10 +118,11 @@ export async function POST(request: Request) {
     if (!antwort.ok) {
       const detail = (await antwort.text()).slice(0, 300);
       console.error(`[podcast-skript] Groq ${antwort.status}: ${detail}`);
-      return NextResponse.json(
-        { error: "Podcast-Skript konnte nicht erzeugt werden." },
-        { status: 502 },
-      );
+      let nutzerFehler = "Podcast-Skript konnte nicht erzeugt werden.";
+      if (antwort.status === 401 || antwort.status === 403) nutzerFehler = "Podcast-Dienst ist nicht richtig konfiguriert (API-Zugriff).";
+      if (antwort.status === 429) nutzerFehler = "Podcast-Dienst ist gerade ausgelastet. Bitte kurz warten und erneut versuchen.";
+      if (/model_terms_required|terms acceptance/i.test(detail)) nutzerFehler = "Podcast-Dienst muss noch im Groq-Dashboard freigeschaltet werden (Model Terms).";
+      return NextResponse.json({ error: nutzerFehler }, { status: 502 });
     }
 
     const daten = (await antwort.json()) as {

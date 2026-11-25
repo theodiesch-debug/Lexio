@@ -545,155 +545,127 @@ export default function VokabelnSeite({ setSlug }: { setSlug: string }) {
         </>
       )}
 
-      <div className={styles.aktionen}>
-        <button type="button" className={styles.knopf} onClick={() => router.push(`/lernen/${setSlug}`)}>
-          Set lernen
-        </button>
-        {/*
-         * Der Einstieg in die Quäl-Runde. Er steht hier und nicht auf der
-         * Lernseite, weil diese Liste die einzige Stelle ist, an der die
-         * Zahl ohnehin da ist – sie zeigt ja schon `fehler` je Karte. Und
-         * weil genau hier jemand steht, der sein Set ansieht: Wer „die
-         * hässlichen Wörter will", findet sie am ehesten neben dem
-         * Lernknopf.
-         *
-         * Vorher erschien der Weg nur bei `quaelAnzahl > 0`. Wer noch keinen
-         * Fehler gemacht hatte, sah den Modus nirgends und hielt ihn für
-         * nicht vorhanden. Jetzt steht an dieser Stelle immer etwas: der
-         * Knopf, sobald es Quäl-Wörter gibt, sonst eine Zeile, die sagt,
-         * wie sie entstehen.
-         */}
-        {quaelAnzahl > 0 ? (
-          <button
-            type="button"
-            className={styles.knopfLeise}
-            onClick={() => router.push(`/lernen/${setSlug}?modus=quaelen`)}
-          >
-            <IconFlamme aria-hidden="true" />
-            Quäl-Wörter ({quaelAnzahl})
-          </button>
-        ) : (
-          <p className={styles.quaelHinweis}>
-            <IconFlamme aria-hidden="true" />
-            Quäl-Wörter entstehen, wenn du Wörter nicht weißt – hier sind noch keine.
-          </p>
-        )}
-      </div>
-
-      {/*
-       * Export. Eigener Block unter den Hauptknöpfen, nicht daneben: das
-       * Set lernen ist der Grund, warum jemand hier ist, und der Export
-       * ist der Weg, den man nur manchmal geht. Zwei weitere Knöpfe in
-       * derselben Reihe würden den Hauptweg unsichtbar machen.
-       *
-       * Die Spaltenreihenfolge steht ausdrücklich im Text. Wer Anki oder
-       * Quizlet vor dem Import nach den Spalten fragt, soll die Antwort
-       * schon vor dem Klick gelesen haben und nicht in der Datei suchen.
-       */}
       {alle.length > 0 && (
-        <section className={styles.podcast} aria-labelledby="lern-podcast-titel">
-          <div className={styles.podcastKopf}>
-            <div>
-              <p className={styles.podcastAugenbraue}>Neu</p>
-              <h2 id="lern-podcast-titel" className={styles.podcastTitel}>Lern-Podcast</h2>
-              <p className={styles.podcastText}>
-                Erzeuge ein lernpsychologisch aufgebautes Audio-Skript aus diesem Set. Du wählst die Grundsprache; das Skript kannst du herunterladen.
-              </p>
-            </div>
+        <section className={styles.aktionsBereich} aria-labelledby="set-aktionen-titel">
+          <p className={styles.podcastAugenbraue}>Aktionen</p>
+          <h2 id="set-aktionen-titel" className={styles.aktionsTitel}>Was willst du mit diesem Set machen?</h2>
+          <div className={styles.aktionsRaster}>
+            <button type="button" className={`${styles.aktionsKarte} ${styles.aktionsKartePrimaer}`} onClick={() => router.push(`/lernen/${setSlug}`)}>
+              <span className={styles.aktionsKarteTitel}>Set lernen</span>
+              <span className={styles.aktionsKarteText}>Klassischer Lernmodus mit Bewertung und Wiederholung.</span>
+            </button>
+
+            {quaelAnzahl > 0 ? (
+              <button type="button" className={styles.aktionsKarte} onClick={() => router.push(`/lernen/${setSlug}?modus=quaelen`)}>
+                <span className={styles.aktionsKarteTitel}><IconFlamme aria-hidden="true" /> Quäl-Wörter ({quaelAnzahl})</span>
+                <span className={styles.aktionsKarteText}>Gezielt die Wörter üben, die zuletzt haken.</span>
+              </button>
+            ) : (
+              <div className={`${styles.aktionsKarte} ${styles.aktionsKartePassiv}`} aria-label="Quäl-Wörter">
+                <span className={styles.aktionsKarteTitel}><IconFlamme aria-hidden="true" /> Quäl-Wörter</span>
+                <span className={styles.aktionsKarteText}>Entstehen automatisch, wenn du Wörter nicht weißt – hier sind noch keine.</span>
+              </div>
+            )}
+
             <button
               type="button"
-              className={styles.knopfLeise}
+              className={`${styles.aktionsKarte} ${podcastOffen ? styles.aktionsKarteAktiv : ""}`}
               onClick={() => setPodcastOffen((o) => !o)}
               aria-expanded={podcastOffen}
+              aria-controls="lern-podcast-panel"
             >
-              {podcastOffen ? "Schließen" : "Podcast erstellen"}
+              <span className={styles.aktionsKarteTitel}>Lern-Podcast <span className={styles.podcastBeta}>Beta</span></span>
+              <span className={styles.aktionsKarteText}>Erzeuge ein lernpsychologisch aufgebautes Skript aus diesem Set.</span>
             </button>
           </div>
 
           {podcastOffen && (
-            <div className={styles.podcastPanel}>
-              <label className={styles.podcastFeld}>
-                <span className={styles.feldName}>Grundsprache für Erklärungen</span>
-                <input
-                  className={styles.feld}
-                  value={podcastGrundsprache}
-                  onChange={(e) => setPodcastGrundsprache(e.target.value)}
-                  maxLength={40}
-                  placeholder="z. B. Deutsch"
-                  disabled={podcastLaeuft}
-                />
-              </label>
-              <p className={styles.podcastHinweis}>
-                Beispiel: Französische Vokabeln, Grundsprache Deutsch. Das Skript nutzt aktive Abruf-Fragen, kleine Chunks und Wiederholung.
-              </p>
-              <div className={styles.exportKnopfe}>
-                <button
-                  type="button"
-                  className={styles.knopf}
-                  onClick={() => void podcastErzeugen()}
-                  disabled={podcastLaeuft}
-                >
-                  {podcastLaeuft ? "Erzeuge Podcast…" : "Skript erzeugen"}
-                </button>
-                {podcast && (
-                  <button type="button" className={styles.knopfLeise} onClick={podcastHerunterladen}>
-                    Skript herunterladen
+            <div id="lern-podcast-panel" className={styles.podcastPanelInline}>
+              <div className={styles.podcastPanel}>
+                <label className={styles.podcastFeld}>
+                  <span className={styles.feldName}>Grundsprache für Erklärungen</span>
+                  <input
+                    className={styles.feld}
+                    value={podcastGrundsprache}
+                    onChange={(e) => setPodcastGrundsprache(e.target.value)}
+                    maxLength={40}
+                    placeholder="z. B. Deutsch"
+                    disabled={podcastLaeuft}
+                  />
+                </label>
+                <p className={styles.podcastHinweis}>
+                  Beispiel: Französische Vokabeln, Grundsprache Deutsch. Das Skript nutzt aktive Abruf-Fragen, kleine Chunks und Wiederholung.
+                </p>
+                <div className={styles.podcastAktionen}>
+                  <button
+                    type="button"
+                    className={styles.podcastHauptKnopf}
+                    onClick={() => void podcastErzeugen()}
+                    disabled={podcastLaeuft}
+                  >
+                    {podcastLaeuft ? "Skript wird erzeugt…" : "Skript erzeugen"}
                   </button>
+                  {podcast && (
+                    <button type="button" className={styles.knopfLeise} onClick={podcastHerunterladen}>
+                      Skript herunterladen (.txt)
+                    </button>
+                  )}
+                </div>
+                {podcastFehler && <p className={styles.exportFehler} role="status">{podcastFehler}</p>}
+                {podcast && (
+                  <div className={styles.podcastErgebnis}>
+                    <p className={styles.podcastMeta}>
+                      <strong>{podcast.titel}</strong> · {podcast.kartenAnzahl} Vokabeln · Grundsprache {podcast.grundsprache}
+                    </p>
+                    {!podcast.audioVerfuegbar && podcast.audioHinweis && (
+                      <p className={styles.hinweisBox} role="status">{podcast.audioHinweis}</p>
+                    )}
+                    <pre className={styles.podcastSkript}>{podcast.skript}</pre>
+                  </div>
                 )}
               </div>
-              {podcastFehler && <p className={styles.exportFehler} role="status">{podcastFehler}</p>}
-              {podcast && (
-                <div className={styles.podcastErgebnis}>
-                  <p className={styles.podcastMeta}>
-                    <strong>{podcast.titel}</strong> · {podcast.kartenAnzahl} Vokabeln · Grundsprache {podcast.grundsprache}
-                  </p>
-                  {!podcast.audioVerfuegbar && podcast.audioHinweis && (
-                    <p className={styles.hinweisBox} role="status">{podcast.audioHinweis}</p>
-                  )}
-                  <pre className={styles.podcastSkript}>{podcast.skript}</pre>
-                </div>
-              )}
             </div>
           )}
         </section>
       )}
 
       {alle.length > 0 && (
-        <div className={styles.export}>
-          <p className={styles.exportText}>
-            Exportieren für Excel, Anki oder Quizlet. Reihenfolge: Vorderseite, Rückseite,
-            Beispielsatz, Satzübersetzung.
-          </p>
-          <div className={styles.exportKnopfe}>
+        <section className={styles.exportBereich} aria-labelledby="export-titel">
+          <div className={styles.exportKopf}>
+            <div>
+              <p className={styles.podcastAugenbraue}>Export</p>
+              <h2 id="export-titel" className={styles.exportTitel}>Für Quizlet, Anki & Excel</h2>
+              <p className={styles.exportText}>
+                Lade dein Set als Datei herunter. Reihenfolge: Vorderseite, Rückseite, Beispielsatz, Satzübersetzung.
+              </p>
+            </div>
+          </div>
+          <div className={styles.exportKarten}>
             <button
               type="button"
-              className={styles.knopfLeise}
+              className={styles.exportKarte}
               onClick={() => void exportieren("csv")}
               disabled={exportLaeuft}
             >
-              CSV
+              <span className={styles.exportKarteTitel}>CSV</span>
+              <span className={styles.exportKarteText}>Für Excel und viele Importe. Semikolon-getrennt, UTF-8.</span>
             </button>
             <button
               type="button"
-              className={styles.knopfLeise}
+              className={styles.exportKarte}
               onClick={() => void exportieren("tsv")}
               disabled={exportLaeuft}
             >
-              TSV
+              <span className={styles.exportKarteTitel}>TSV</span>
+              <span className={styles.exportKarteText}>Gut für Quizlet/Anki. Tab-getrennt, ohne Kopfzeile.</span>
             </button>
           </div>
-          {/*
-           * `role="status"` und nicht `role="alert"`: ein Fehlschlag beim
-           * Download ist ärgerlich, aber kein Notfall – und alert würde
-           * screenreaderseitig den Fokus wegnehmen, während der Nutzer
-           * gerade auf einem Knopf steht.
-           */}
           {exportFehler && (
             <p className={styles.exportFehler} role="status">
               {exportFehler}
             </p>
           )}
-        </div>
+        </section>
       )}
     </div>
   );
