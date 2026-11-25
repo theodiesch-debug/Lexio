@@ -118,6 +118,13 @@ export default function VokabelnSeite({ setSlug }: { setSlug: string }) {
     audioHinweis: string;
   } | null>(null);
 
+  const [teilenOffen, setTeilenOffen] = useState(false);
+  const [teilenLaedt, setTeilenLaedt] = useState(false);
+  const [teilenArbeitet, setTeilenArbeitet] = useState(false);
+  const [teilenFehler, setTeilenFehler] = useState<string | null>(null);
+  const [teilenHinweis, setTeilenHinweis] = useState<string | null>(null);
+  const [teilen, setTeilen] = useState<{ aktiv: boolean; token: string | null } | null>(null);
+
   /*
    * Herunterladen über die Route, nicht aus den bereits geladenen Karten.
    *
@@ -210,6 +217,65 @@ export default function VokabelnSeite({ setSlug }: { setSlug: string }) {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+  }
+
+  async function ladeTeilen() {
+    if (!daten?.set.eigen) return;
+    setTeilenLaedt(true);
+    setTeilenFehler(null);
+    try {
+      const antwort = await holeJson<{ teilen: { aktiv: boolean; token: string | null } }>(
+        `/api/sets/${encodeURIComponent(setSlug)}/teilen`,
+      );
+      setTeilen(antwort.teilen);
+    } catch (e) {
+      setTeilenFehler(e instanceof Error ? e.message : "Teilen-Status konnte nicht geladen werden.");
+    } finally {
+      setTeilenLaedt(false);
+    }
+  }
+
+  async function aktiviereTeilen() {
+    setTeilenArbeitet(true);
+    setTeilenFehler(null);
+    setTeilenHinweis(null);
+    try {
+      const antwort = await holeJson<{ teilen: { aktiv: boolean; token: string | null } }>(
+        `/api/sets/${encodeURIComponent(setSlug)}/teilen`,
+        undefined,
+        { method: "POST" },
+      );
+      setTeilen(antwort.teilen);
+    } catch (e) {
+      setTeilenFehler(e instanceof Error ? e.message : "Set konnte nicht geteilt werden.");
+    } finally {
+      setTeilenArbeitet(false);
+    }
+  }
+
+  async function deaktiviereTeilen() {
+    setTeilenArbeitet(true);
+    setTeilenFehler(null);
+    setTeilenHinweis(null);
+    try {
+      await holeJson(`/api/sets/${encodeURIComponent(setSlug)}/teilen`, undefined, { method: "DELETE" });
+      setTeilen({ aktiv: false, token: null });
+    } catch (e) {
+      setTeilenFehler(e instanceof Error ? e.message : "Teilen konnte nicht deaktiviert werden.");
+    } finally {
+      setTeilenArbeitet(false);
+    }
+  }
+
+  async function kopiereTeilenLink() {
+    if (!teilen?.token) return;
+    const url = `${window.location.origin}/teilen/${teilen.token}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setTeilenHinweis("Link kopiert.");
+    } catch {
+      setTeilenHinweis(url);
+    }
   }
 
   useEffect(() => {
@@ -577,6 +643,23 @@ export default function VokabelnSeite({ setSlug }: { setSlug: string }) {
               <span className={styles.aktionsKarteTitel}>Lern-Podcast <span className={styles.podcastBeta}>Beta</span></span>
               <span className={styles.aktionsKarteText}>Erzeuge ein lernpsychologisch aufgebautes Skript aus diesem Set.</span>
             </button>
+
+            {daten?.set.eigen && (
+              <button
+                type="button"
+                className={`${styles.aktionsKarte} ${teilenOffen ? styles.aktionsKarteAktiv : ""}`}
+                onClick={() => {
+                  const offen = !teilenOffen;
+                  setTeilenOffen(offen);
+                  if (offen && !teilen && !teilenLaedt) void ladeTeilen();
+                }}
+                aria-expanded={teilenOffen}
+                aria-controls="set-teilen-panel"
+              >
+                <span className={styles.aktionsKarteTitel}>Set teilen</span>
+                <span className={styles.aktionsKarteText}>Erstelle einen Read-only-Link, den andere kopieren oder lernen können.</span>
+              </button>
+            )}
           </div>
 
           {podcastOffen && (
@@ -623,6 +706,40 @@ export default function VokabelnSeite({ setSlug }: { setSlug: string }) {
                     <pre className={styles.podcastSkript}>{podcast.skript}</pre>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {teilenOffen && daten?.set.eigen && (
+            <div id="set-teilen-panel" className={styles.podcastPanelInline}>
+              <div className={styles.podcastPanel}>
+                <p className={styles.podcastHinweis}>
+                  Teilen erstellt einen öffentlichen Read-only-Link. Andere sehen das Set und können es nach Anmeldung in ihr Konto kopieren. Du kannst das Teilen jederzeit deaktivieren.
+                </p>
+                {teilenLaedt ? <p className={styles.podcastHinweis}>Status wird geladen…</p> : null}
+                {!teilenLaedt && !teilen?.aktiv && (
+                  <div className={styles.podcastAktionen}>
+                    <button type="button" className={styles.podcastHauptKnopf} onClick={() => void aktiviereTeilen()} disabled={teilenArbeitet}>
+                      {teilenArbeitet ? "Link wird erstellt…" : "Teilen aktivieren"}
+                    </button>
+                  </div>
+                )}
+                {!teilenLaedt && teilen?.aktiv && teilen.token && (
+                  <>
+                    <label className={styles.podcastFeld}>
+                      <span className={styles.feldName}>Öffentlicher Link</span>
+                      <input className={styles.feld} readOnly value={`${typeof window !== "undefined" ? window.location.origin : ""}/teilen/${teilen.token}`} />
+                    </label>
+                    <div className={styles.podcastAktionen}>
+                      <button type="button" className={styles.podcastHauptKnopf} onClick={() => void kopiereTeilenLink()}>Link kopieren</button>
+                      <button type="button" className={styles.knopfLeise} onClick={() => void deaktiviereTeilen()} disabled={teilenArbeitet}>
+                        {teilenArbeitet ? "Deaktiviere…" : "Teilen deaktivieren"}
+                      </button>
+                    </div>
+                  </>
+                )}
+                {teilenHinweis && <p className={styles.podcastHinweis} role="status">{teilenHinweis}</p>}
+                {teilenFehler && <p className={styles.exportFehler} role="status">{teilenFehler}</p>}
               </div>
             </div>
           )}
