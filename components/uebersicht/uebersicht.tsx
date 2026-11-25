@@ -179,7 +179,7 @@ export default function Uebersicht() {
     ? `Lerne heute ${faelligGesamt} ${faelligGesamt === 1 ? "Wort" : "Wörter"}.`
     : naechstes
       ? `Du bist auf dem neuesten Stand. ${naechstes.kartenGelernt} von ${naechstes.kartenGesamt} Karten gelernt.`
-      : "Lege dein erstes Set an und lerne sofort los.";
+      : "Starte mit deinem ersten Set – in unter 2 Minuten bist du in der ersten Lernrunde.";
 
   // Der Quael-Einstieg erscheint nur, wenn es ueberhaupt Quael-Woerter gibt.
   // Fuehren soll das Set mit den meisten: dort gibt es am meisten zu holen.
@@ -249,15 +249,25 @@ export default function Uebersicht() {
           )}
         </div>
         <div className={styles.karteAktion}>
-          <button
-            type="button"
-            className={styles.knopf}
-            disabled={!naechstes}
-            onClick={() => naechstes && router.push(`/lernen/${naechstes.id}`)}
-          >
-            Weiter lernen
-            <i className="fa-solid fa-arrow-right" aria-hidden="true" />
-          </button>
+          {naechstes ? (
+            <button
+              type="button"
+              className={styles.knopf}
+              onClick={() => router.push(`/lernen/${naechstes.id}`)}
+            >
+              Weiter lernen
+              <i className="fa-solid fa-arrow-right" aria-hidden="true" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              className={styles.knopf}
+              onClick={() => router.push("/karteikarten-hinzufuegen")}
+            >
+              Erstes Set anlegen
+              <i className="fa-solid fa-arrow-right" aria-hidden="true" />
+            </button>
+          )}
         </div>
       </section>
 
@@ -361,16 +371,36 @@ export default function Uebersicht() {
           </div>
         ) : sets.length === 0 ? (
           <div className={styles.leer}>
-            <p className={styles.leerTitel}>Noch keine Vokabel-Sets</p>
-            <p>Lege dein erstes Set an und lerne sofort los.</p>
-            <button
-              type="button"
-              className={styles.leerKnopf}
-              onClick={() => router.push("/karteikarten-hinzufuegen")}
-            >
-              <i className="fa-solid fa-plus" aria-hidden="true" />
-              Set anlegen
-            </button>
+            <p className={styles.leerTitel}>Starte in unter 2 Minuten</p>
+            <p className={styles.leerText}>
+              Lege dein erstes Set an oder importiere Wörter. Danach kannst du sofort lernen.
+            </p>
+            <div className={styles.leerAktionen}>
+              <button
+                type="button"
+                className={styles.leerKarte}
+                onClick={() => router.push("/karteikarten-hinzufuegen")}
+              >
+                <span className={styles.leerKarteTitel}><i className="fa-solid fa-plus" aria-hidden="true" /> Set anlegen</span>
+                <span className={styles.leerKarteText}>Erstelle ein eigenes Set und füge deine ersten Vokabeln hinzu.</span>
+              </button>
+              <button
+                type="button"
+                className={styles.leerKarte}
+                onClick={() => router.push("/vokabeln-aus-text")}
+              >
+                <span className={styles.leerKarteTitel}><i className="fa-solid fa-file-lines" aria-hidden="true" /> Aus Text importieren</span>
+                <span className={styles.leerKarteText}>Füge Text ein oder importiere Wörter, statt alles abzutippen.</span>
+              </button>
+              <button
+                type="button"
+                className={styles.leerKarte}
+                onClick={() => router.push("/wortschatz-test")}
+              >
+                <span className={styles.leerKarteTitel}><i className="fa-solid fa-clipboard-question" aria-hidden="true" /> Wortschatz testen</span>
+                <span className={styles.leerKarteText}>Finde heraus, wo du stehst, und bekomme passende Wörter.</span>
+              </button>
+            </div>
           </div>
         ) : (
           <div className={styles.raster}>
