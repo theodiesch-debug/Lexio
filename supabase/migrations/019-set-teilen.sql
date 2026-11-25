@@ -36,7 +36,7 @@ begin
     raise exception 'Nicht angemeldet.' using errcode = '42501';
   end if;
 
-  v_token := encode(gen_random_bytes(18), 'base64url');
+  v_token := encode(extensions.gen_random_bytes(18), 'base64url');
 
   update public.karteikarten_sets
      set share_token = v_token,
